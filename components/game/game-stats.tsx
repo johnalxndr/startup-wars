@@ -7,9 +7,9 @@ import { GameStatsProps } from "@/app/types";
 
 export function GameStats({ gameState, calculateBurnRate }: GameStatsProps) {
   // Calculate components of cash flow
-  const dailyRevenue = gameState.users * gameState.revenuePerUser;
+  const monthlyRevenue = gameState.users * gameState.mrrPerUser;
   const totalBurn = calculateBurnRate();
-  const netDailyChange = dailyRevenue - totalBurn;
+  const netMonthlyChange = monthlyRevenue - totalBurn;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -22,8 +22,8 @@ export function GameStats({ gameState, calculateBurnRate }: GameStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${gameState.cash.toLocaleString()}</div>
-          <p className={`text-sm font-medium ${netDailyChange >= 0 ? 'text-green-600' : 'text-red-600'} dark:${netDailyChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {netDailyChange >= 0 ? '+' : ''}${netDailyChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/day
+          <p className={`text-sm font-medium ${netMonthlyChange >= 0 ? 'text-green-600' : 'text-red-600'} dark:${netMonthlyChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {netMonthlyChange >= 0 ? '+' : ''}${netMonthlyChange.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
           </p>
         </CardContent>
       </Card>
@@ -37,7 +37,7 @@ export function GameStats({ gameState, calculateBurnRate }: GameStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">${gameState.valuation.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground">Day {gameState.day}</p>
+          <p className="text-xs text-muted-foreground">Month {gameState.month}</p>
         </CardContent>
       </Card>
 

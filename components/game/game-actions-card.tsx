@@ -42,7 +42,7 @@ export function GameActionsCard({
                                 : "bg-muted"
                           }`}
                       >
-                        <span className="font-medium">Day {event.day}:</span> {event.message}
+                        <span className="font-medium">Month {event.month}:</span> {event.message}
                       </div>
                     ))}
                 </div>

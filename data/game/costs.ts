@@ -1,11 +1,11 @@
-import { HiringCosts, AssetPrices } from "@/app/types";
+import { TeamMemberMonthlyCosts, AssetPrices } from "@/app/types";
 
 // Static costs, assuming they don't need to be dynamically calculated for now
 
-export const HIRING_COSTS: HiringCosts = {
-  engineer: 10000,
-  designer: 8000,
-  marketer: 7000,
+export const TEAM_MEMBER_MONTHLY_COSTS: TeamMemberMonthlyCosts = {
+  engineer: 1000,
+  designer: 800,
+  marketer: 700,
 };
 
 export const ASSET_PRICES: AssetPrices = {

@@ -1,6 +1,6 @@
 // Type Definitions
 export interface GameEvent {
-  day: number
+  month: number
   type: "positive" | "negative" | "info" | "special"
   message: string
 }
@@ -28,26 +28,27 @@ export interface RecurringAction {
   id: string;
   name: string;
   description: string;
-  dailyCost: number;
-  // Function to calculate the daily effect (e.g., user increase)
-  dailyEffect: (state: GameState) => { userIncrease: number };
+  monthlyCost: number;
+  // Function to calculate the monthly effect (e.g., user increase)
+  monthlyEffect: (state: GameState) => { userIncrease: number };
   // Optional one-time setup cost
   setupCost?: number;
 }
 
 export interface GameState {
-  day: number
+  month: number
   cash: number
   valuation: number
   users: number
-  revenuePerUser: number
+  mrrPerUser: number
   team: TeamMembers;
   assets: Assets;
   events: GameEvent[]
   gameOver: boolean
   // New fields
   activeRecurringActions: string[]; // IDs of active recurring actions
-  recurringActionDailyCost: number; // Total daily cost from recurring actions
+  recurringActionMonthlyCost: number; // Total monthly cost from recurring actions
+  playerName: string | null; // Added player name
 }
 
 export interface RandomEvent {
@@ -64,8 +65,6 @@ export interface TeamMemberAttributes {
   coding: number;
   design: number;
   marketing: number;
-  communication: number;
-  problemSolving: number;
 }
 
 // Define an individual team member
@@ -76,8 +75,9 @@ export interface TeamMember {
   // Could add things like salary, morale later
 }
 
-// Updated TeamMembers to hold arrays of individual members
+// Updated TeamMembers to hold arrays of individual members AND the founder
 export interface TeamMembers {
+  founder: TeamMember | null; // Added founder field
   engineers: TeamMember[];
   designers: TeamMember[];
   marketers: TeamMember[];
@@ -88,7 +88,8 @@ export interface Assets {
   patents: number;
 }
 
-export interface HiringCosts {
+// Renamed from HiringCosts
+export interface TeamMemberMonthlyCosts {
   engineer: number;
   designer: number;
   marketer: number;
@@ -99,14 +100,14 @@ export interface AssetPrices {
   patent: number;
 }
 
-export type TeamMemberType = "engineer" | "designer" | "marketer";
+export type TeamMemberType = "engineer" | "designer" | "marketer" | "founder";
 
 // --- Component Prop Type Updates ---
 
 // Removed locations, currentLocation, travelTo?
 export interface MainTabsProps {
   gameState: GameState;
-  hiringCosts: HiringCosts;
+  hiringCosts: TeamMemberMonthlyCosts;
   assetPrices: AssetPrices;
   hireTeamMember: (member: TeamMember) => void;
   buyAsset: (assetType: AssetType) => void;
@@ -123,7 +124,7 @@ export interface MainTabsProps {
 export interface TeamTabProps {
   gameState: GameState;
   hireTeamMember: (member: TeamMember) => void;
-  hiringCosts: HiringCosts;
+  hiringCosts: TeamMemberMonthlyCosts;
 }
 
 // Removed currentLocation
@@ -155,7 +156,7 @@ export interface EventImpact {
   cashChange?: number;
   userChange?: number;
   valuationChange?: number;
-  revenuePerUserChange?: number;
+  mrrPerUserChange?: number;
   message: string; // A concise message summarizing the impact
 }
 

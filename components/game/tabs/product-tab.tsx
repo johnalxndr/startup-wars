@@ -51,12 +51,12 @@ export function ProductTab({
              </span>
              <span className="text-lg font-semibold">{gameState.users.toLocaleString()}</span>
           </div>
-          {/* RPU Metric */}
+          {/* RPU Metric -> MRR/User Metric */}
           <div className="flex items-center justify-between p-3 border rounded-lg">
              <span className="flex items-center font-medium">
-               <Rss className="w-5 h-5 mr-2 text-lime-500" /> Revenue / User
+               <Rss className="w-5 h-5 mr-2 text-lime-500" /> MRR / User
              </span>
-             <span className="text-lg font-semibold">${gameState.revenuePerUser.toFixed(2)}</span>
+             <span className="text-lg font-semibold">${gameState.mrrPerUser.toFixed(2)}</span>
           </div>
           {/* Servers Metric */}
           <div className="flex items-center justify-between p-3 border rounded-lg">
@@ -171,7 +171,7 @@ export function ProductTab({
                                   <span className="font-medium">{action.name}</span>
                                   <div className="flex space-x-2 mt-1">
                                     {action.setupCost && <Badge variant="outline">Setup: ${action.setupCost.toLocaleString()}</Badge>}
-                                    <Badge variant="outline">Daily: ${action.dailyCost.toLocaleString()}</Badge>
+                                    <Badge variant="outline">Monthly: ${action.monthlyCost.toLocaleString()}</Badge>
                                   </div>
                                 </div>
                               </div>

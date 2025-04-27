@@ -13,7 +13,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
         users: newUsers,
         events: [
           ...state.events,
-          { day: state.day, type: "positive", message: `App went viral! Users +${(newUsers - state.users).toLocaleString()} (+500%)` },
+          { month: state.month, type: "positive", message: `App went viral! Users +${(newUsers - state.users).toLocaleString()} (+500%)` },
         ],
       };
     },
@@ -29,7 +29,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
         users: state.users + newUserGrowth,
         events: [
           ...state.events,
-          { day: state.day, type: "positive", message: `Press coverage! Users +${newUserGrowth.toLocaleString()} (+20%)` },
+          { month: state.month, type: "positive", message: `Press coverage! Users +${newUserGrowth.toLocaleString()} (+20%)` },
         ],
       };
     },
@@ -43,7 +43,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
       return {
         ...state,
         users: Math.max(0, state.users - userLoss),
-        events: [...state.events, { day: state.day, type: "negative", message: `Server outage! Lost ${userLoss.toLocaleString()} users (-30%)` }],
+        events: [...state.events, { month: state.month, type: "negative", message: `Server outage! Lost ${userLoss.toLocaleString()} users (-30%)` }],
       };
     },
   },
@@ -54,7 +54,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
     effect: (state: GameState) => ({
       ...state,
       cash: Math.max(0, state.cash - 25000),
-      events: [...state.events, { day: state.day, type: "negative", message: "Legal fees! -$25,000" }],
+      events: [...state.events, { month: state.month, type: "negative", message: "Legal fees! -$25,000" }],
     }),
   },
   {
@@ -63,7 +63,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
     description: "A larger company wants to buy you out.",
     effect: (state: GameState) => ({
       ...state,
-      events: [...state.events, { day: state.day, type: "special", message: "Received acquisition offer!" }],
+      events: [...state.events, { month: state.month, type: "special", message: "Received acquisition offer!" }],
       // Special event that will be handled separately in the UI
     }),
   },
@@ -80,7 +80,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
         // For now, just return the state unchanged, maybe add a less dramatic event log
          return {
             ...state,
-            events: [...state.events, { day: state.day, type: "info", message: "Heard resignation rumors, but everyone stayed... this time." }],
+            events: [...state.events, { month: state.month, type: "info", message: "Heard resignation rumors, but everyone stayed... this time." }],
         };
       }
 
@@ -114,7 +114,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
         events: [
           ...state.events,
           {
-            day: state.day,
+            month: state.month,
             type: "negative",
             message: `${memberTypeReadable} (ID: ${memberWhoQuit.id.substring(0,6)}) quit! Team size decreased.`
           }

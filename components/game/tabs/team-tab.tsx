@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { GameState, TeamMemberType, HiringCosts, TeamMember, TeamMemberAttributes } from "@/app/types";
+import { GameState, TeamMemberType, TeamMemberMonthlyCosts, TeamMember, TeamMemberAttributes } from "@/app/types"; // Updated type name
 import { Users, UserPlus, Wrench, Palette, Megaphone } from 'lucide-react'; // Added specific icons
 import { TeamMemberCard } from "../team-member-card"; // Import the new card
 
@@ -14,7 +14,7 @@ import { TeamMemberCard } from "../team-member-card"; // Import the new card
 export interface TeamTabProps {
   gameState: GameState;
   hireTeamMember: (member: TeamMember) => void;
-  hiringCosts: HiringCosts; // Add costs object
+  hiringCosts: TeamMemberMonthlyCosts; // Updated type name (though unused for display now)
 }
 
 // Helper to generate random attributes within a specific range
@@ -23,67 +23,59 @@ const randomStatInRange = (min: number, max: number): number => {
 };
 
 // Define attribute ranges for roles
-const attributeRanges: Record<TeamMemberType, { [key in keyof TeamMemberAttributes]: { min: number, max: number } }> = {
+const attributeRanges: Record<Exclude<TeamMemberType, 'founder'>, { [key in keyof TeamMemberAttributes]: { min: number, max: number } }> = {
     engineer: {
         coding: { min: 6, max: 9 },
-        problemSolving: { min: 5, max: 8 },
         design: { min: 1, max: 4 },
         marketing: { min: 1, max: 3 },
-        communication: { min: 2, max: 5 },
     },
     designer: {
         design: { min: 6, max: 9 },
-        communication: { min: 4, max: 7 },
-        problemSolving: { min: 3, max: 6 },
         coding: { min: 2, max: 5 },
         marketing: { min: 1, max: 4 },
     },
     marketer: {
         marketing: { min: 6, max: 9 },
-        communication: { min: 5, max: 8 },
-        problemSolving: { min: 2, max: 5 },
         design: { min: 1, max: 4 },
         coding: { min: 1, max: 3 },
     }
 };
 
 // Updated generateAttributes to use ranges if provided, otherwise fallback
-const generateAttributes = (type: TeamMemberType): TeamMemberAttributes => {
+const generateAttributes = (type: Exclude<TeamMemberType, 'founder'>): TeamMemberAttributes => {
     const ranges = attributeRanges[type];
     return {
         coding: randomStatInRange(ranges.coding.min, ranges.coding.max),
         design: randomStatInRange(ranges.design.min, ranges.design.max),
         marketing: randomStatInRange(ranges.marketing.min, ranges.marketing.max),
-        communication: randomStatInRange(ranges.communication.min, ranges.communication.max),
-        problemSolving: randomStatInRange(ranges.problemSolving.min, ranges.problemSolving.max),
     };
 };
 
 // Map types to icons and titles for cleaner code
-const typeDetails: Record<TeamMemberType, { title: string, icon: React.ElementType }> = {
+const typeDetails: Record<Exclude<TeamMemberType, 'founder'>, { title: string, icon: React.ElementType }> = {
     engineer: { title: "Engineers", icon: Wrench },
     designer: { title: "Designers", icon: Palette },
     marketer: { title: "Marketers", icon: Megaphone }
 };
 
 export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps) {
-  const teamMemberTypes: TeamMemberType[] = ["engineer", "designer", "marketer"];
+  // Use Exclude here
+  const teamMemberTypes: Exclude<TeamMemberType, 'founder'>[] = ["engineer", "designer", "marketer"];
 
   // Generate candidates - useMemo helps prevent regeneration on every render
   const candidates = useMemo(() => {
-    const generated: { [key in TeamMemberType]: TeamMember[] } = { engineer: [], designer: [], marketer: [] };
+    const generated: Record<Exclude<TeamMemberType, 'founder'>, TeamMember[]> = { engineer: [], designer: [], marketer: [] };
     teamMemberTypes.forEach(type => {
-      for (let i = 0; i < 3; i++) { // Generate 3 candidates per type
-        generated[type].push({
+      for (let i = 0; i < 3; i++) {
+        generated[type].push({ 
           id: uuidv4(),
           type: type,
-          attributes: generateAttributes(type), // Generate attributes based on type ranges
+          attributes: generateAttributes(type),
         });
       }
     });
     return generated;
-    // Dependency array includes day to refresh candidates daily.
-  }, [gameState.day]);
+  }, [gameState.month]); // Correct dependency: Regenerate candidates each month
 
   const currentTeamMembers = [
       ...gameState.team.engineers,
@@ -120,12 +112,11 @@ export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps
           <CardDescription>Potential hires available each day. Attributes vary.</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow pt-0"> {/* Removed top padding */} 
-            <Tabs defaultValue="engineer" className="flex flex-col h-full">
+            <Tabs defaultValue="engineer">
                  <TabsList className="grid w-full grid-cols-3 mb-4"> {/* Tabs occupy full width */} 
-                     {teamMemberTypes.map((memberType) => {
-                         const details = typeDetails[memberType];
+                     {teamMemberTypes.map((memberType) => { // memberType is Exclude<...>
+                         const details = typeDetails[memberType]; // Indexing is correct
                          const Icon = details.icon;
-                         const cost = hiringCosts[memberType];
                          return (
                             <TabsTrigger key={memberType} value={memberType}>
                                 <Icon className="w-4 h-4 mr-1.5"/> {details.title}
@@ -134,26 +125,32 @@ export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps
                      })}
                 </TabsList>
 
-                {teamMemberTypes.map((memberType) => {
-                    const cost = hiringCosts[memberType];
-                    const typeCandidates = candidates[memberType];
-                    const canAfford = gameState.cash >= cost;
-                    const details = typeDetails[memberType];
+                {teamMemberTypes.map((memberType) => { // memberType is Exclude<...>
+                    const monthlyCost = hiringCosts[memberType]; // Get the specific monthly cost
+                    const typeCandidates = candidates[memberType]; // Indexing is correct
+                    const details = typeDetails[memberType]; // Indexing is correct
 
                     return (
-                        <TabsContent key={memberType} value={memberType} className="flex-grow space-y-3 mt-0 overflow-y-auto"> {/* Added flex-grow and overflow */} 
-                            <div className="text-sm text-muted-foreground mb-2">Cost per hire: ${cost.toLocaleString()}</div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {typeCandidates.map((candidate) => (
-                                    <TeamMemberCard
-                                        key={candidate.id}
-                                        member={candidate}
-                                        isCandidate={true}
-                                        onHire={hireTeamMember}
-                                        cost={cost}
-                                        disabled={gameState.gameOver || !canAfford}
-                                    />
-                                ))}
+                        <TabsContent 
+                            key={memberType} 
+                            value={memberType} 
+                            className="mt-0" // Keep margin top zero, remove others
+                        >
+                            {/* Add an inner div for layout and spacing */}
+                            <div className="space-y-3">
+                                <div className="text-sm text-muted-foreground mb-2">Hiring adds to monthly cost.</div> 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {typeCandidates.map((candidate) => (
+                                        <TeamMemberCard
+                                            key={candidate.id}
+                                            member={candidate}
+                                            isCandidate={true}
+                                            onHire={hireTeamMember}
+                                            monthlyCost={monthlyCost} // Pass the monthly cost
+                                            disabled={gameState.gameOver} // Only disable if game is over
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         </TabsContent>
                     );

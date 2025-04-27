@@ -8,8 +8,8 @@ interface TeamMemberCardProps {
   member: TeamMember // Represents either a current member or a candidate
   isCandidate?: boolean // Flag to show 'Hire' button for candidates
   onHire?: (member: TeamMember) => void // Action for hiring
-  cost?: number // Cost to display if it's a candidate
-  disabled?: boolean // Disable hire button (e.g., insufficient funds)
+  monthlyCost?: number // Add monthly cost prop (optional as it's only for candidates)
+  disabled?: boolean // Disable hire button (e.g., game over)
 }
 
 // Helper for nice titles
@@ -17,6 +17,7 @@ const memberTypeTitles: Record<TeamMemberType, string> = {
     engineer: "Engineer",
     designer: "Designer",
     marketer: "Marketer",
+    founder: "Founder",
 };
 
 // Helper for generating initials
@@ -24,7 +25,7 @@ const getInitials = (type: TeamMemberType): string => {
     return type.substring(0, 2).toUpperCase();
 }
 
-export function TeamMemberCard({ member, isCandidate = false, onHire, cost, disabled = false }: TeamMemberCardProps) {
+export function TeamMemberCard({ member, isCandidate = false, onHire, monthlyCost, disabled = false }: TeamMemberCardProps) {
   const title = memberTypeTitles[member.type];
   const initials = getInitials(member.type);
 
@@ -41,9 +42,12 @@ export function TeamMemberCard({ member, isCandidate = false, onHire, cost, disa
           {/* Optionally display ID or other small info here */}
         </CardHeader>
         <CardContent className="px-3 pb-2">
-          {isCandidate && onHire && cost !== undefined && (
+          {isCandidate && onHire && (
             <div className="mt-1 flex flex-col space-y-1">
-                <span className="text-xs text-muted-foreground">Cost: ${cost.toLocaleString()}</span>
+                {/* Display monthly cost if provided */} 
+                {monthlyCost !== undefined && (
+                    <span className="text-xs text-muted-foreground">Monthly Cost: ${monthlyCost.toLocaleString()}</span>
+                )}
                 <Button
                     onClick={() => onHire(member)}
                     size="sm"

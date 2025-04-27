@@ -11,7 +11,7 @@ import {
   Assets,
   TeamMemberType,
   AssetType,
-  HiringCosts,
+  TeamMemberMonthlyCosts,
   AssetPrices,
   RandomEvent,
   GrowthAction,
@@ -19,127 +19,103 @@ import {
   TeamMemberAttributes,
   TeamMember,
   EventImpact // Import EventImpact
-} from "@/app/types";
+} from "@/app/types"; // Types now use month, mrrPerUser, monthlyCost etc.
 
 // Import new components
 import { GameHeader } from "@/components/game/game-header";
-import { GameStats } from "@/components/game/game-stats";
-import { GameOverScreen } from "@/components/game/game-over-screen";
-import { MainTabs } from "@/components/game/main-tabs";
+import { GameStats } from "@/components/game/game-stats"; // Will receive updated GameState
+import { GameOverScreen } from "@/components/game/game-over-screen"; // Will receive updated GameState
+import { MainTabs } from "@/components/game/main-tabs"; // Will receive updated GameState and RecurringAction
 import { Button } from "@/components/ui/button";
-import { EventDialog } from '@/components/game/event-dialog';
-import { RANDOM_EVENTS } from "@/data/game/random-events"; // Import RANDOM_EVENTS
-import { INITIAL_STATE } from "@/data/game/initial-state"; // Import INITIAL_STATE
-import { GROWTH_ACTIONS } from "@/data/game/growth-actions"; // Import GROWTH_ACTIONS
-import { RECURRING_ACTIONS } from "@/data/game/recurring-actions"; // Import RECURRING_ACTIONS
-import { HIRING_COSTS, ASSET_PRICES } from "@/data/game/costs"; // Import costs
+import { EventDialog } from '@/components/game/event-dialog'; // Will receive updated GameState
+import { RANDOM_EVENTS } from "@/data/game/random-events"; // Uses updated GameState/GameEvent
+import { INITIAL_STATE } from "@/data/game/initial-state"; // Uses updated GameState
+import { GROWTH_ACTIONS } from "@/data/game/growth-actions"; // Uses updated GameState
+import { RECURRING_ACTIONS } from "@/data/game/recurring-actions"; // Uses updated RecurringAction
+import { TEAM_MEMBER_MONTHLY_COSTS, ASSET_PRICES } from "@/data/game/costs"; // Renamed import
+
+// Import new setup components
+import { StartScreen } from '@/components/game/start-screen';
+import { NameInput } from '@/components/game/name-input';
+import { AttributeAllocator } from '@/components/game/attribute-allocator';
 
 // Game constants
 
-// Helper to generate random attributes
-// const generateAttributes = (base: Partial<TeamMemberAttributes> = {}): TeamMemberAttributes => {
-//   const randomStat = () => Math.floor(Math.random() * 8) + 1; // 1-8
-//   return {
-//     coding: base.coding ?? randomStat(),
-//     design: base.design ?? randomStat(),
-//     marketing: base.marketing ?? randomStat(),
-//     communication: base.communication ?? randomStat(),
-//     problemSolving: base.problemSolving ?? randomStat(),
-//   };
-// };
+type SetupStep = "start" | "name" | "attributes" | "complete"; // Define setup steps type
 
-// const INITIAL_STATE: GameState = {
-//   day: 1,
-//   cash: 50000,
-//   valuation: 0,
-//   users: 100,
-//   revenuePerUser: 0.2,
-//   team: {
-//     engineers: [
-//       {
-//         id: uuidv4(),
-//         type: 'engineer',
-//         attributes: generateAttributes({ coding: 5, problemSolving: 4 }),
-//       }
-//     ],
-//     designers: [],
-//     marketers: [],
-//   },
-//   assets: {
-//     servers: 1,
-//     patents: 0,
-//   },
-//   events: [],
-//   gameOver: false,
-//   activeRecurringActions: [],
-//   recurringActionDailyCost: 0,
-// }
+// Helper to generate random attributes - Removed
 
-// Random events that can occur
-// const RANDOM_EVENTS: RandomEvent[] = [...]
-// [Entire RANDOM_EVENTS array definition removed]
+// INITIAL_STATE moved to data/game/initial-state.ts
 
-// Define Growth Actions
-// const GROWTH_ACTIONS: GrowthAction[] = [...]
-// [Entire GROWTH_ACTIONS array definition removed]
+// RANDOM_EVENTS moved to data/game/random-events.ts
 
-// Define Recurring Actions
-// const RECURRING_ACTIONS: RecurringAction[] = [...]
-// [Entire RECURRING_ACTIONS array definition removed]
+// GROWTH_ACTIONS moved to data/game/growth-actions.ts
 
-// Market prices -> Split into Hiring Costs and Asset Prices
-// const getHiringCosts = (): HiringCosts => {
-//   // Dynamic costs could be added later
-//   return {
-//     engineer: 10000,
-//     designer: 8000,
-//     marketer: 7000,
-//   };
-// }
-//
-// const getAssetPrices = (): AssetPrices => {
-//   // Dynamic costs could be added later
-//   return {
-//     server: 5000,
-//     patent: 25000,
-//   };
-// }
+// RECURRING_ACTIONS moved to data/game/recurring-actions.ts
+
+// Costs moved to data/game/costs.ts
 
 export default function StartupWars() {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE)
   const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null)
-  const [currentEventImpact, setCurrentEventImpact] = useState<EventImpact | null>(null); // New state for impact
+  const [currentEventImpact, setCurrentEventImpact] = useState<EventImpact | null>(null); // Uses updated EventImpact
   const [acquisitionOfferAmount, setAcquisitionOfferAmount] = useState<number | null>(null);
+  const [setupStep, setSetupStep] = useState<SetupStep>("start"); // New state for setup flow
+  const [playerAttributes, setPlayerAttributes] = useState<TeamMemberAttributes | null>(null); // State for player attributes during setup
 
-  // Calculate daily burn rate (Updated)
+  // Handler to move from Start to Name input
+  const handleStartGame = () => {
+    setSetupStep("name");
+  };
+
+  // Handler to save name and move to Attribute allocation
+  const handleNameSubmit = (name: string) => {
+    setGameState(prevState => ({ ...prevState, playerName: name }));
+    setSetupStep("attributes");
+  };
+
+  // Handler to save attributes, create founder, and start the game
+  const handleAttributesSubmit = (attributes: TeamMemberAttributes) => {
+    const founder: TeamMember = {
+      id: uuidv4(),
+      type: 'founder', // Assign a specific type 'founder'
+      attributes: attributes,
+    };
+    setGameState(prevState => ({
+      ...prevState,
+      team: {
+        ...prevState.team,
+        founder: founder,
+      },
+    }));
+    // Recalculate initial valuation *after* founder is added
+    setGameState(currentState => ({
+        ...currentState,
+        valuation: calculateValuation(currentState)
+    }));
+    setSetupStep("complete"); // Mark setup as complete
+  };
+
+  // Calculate monthly burn rate
   const calculateBurnRate = (state: GameState = gameState) => { // Allow passing state for calculation
-    // const assetBurn = (
-    //   state.assets.engineers * 1000 +
-    //   state.assets.designers * 800 +
-    //   state.assets.marketers * 700 +
-    //   state.assets.servers * 200
-    // );
+    // Assuming these costs are per month now
+    const founderBurn = state.team.founder ? 1500 : 0; // Founder monthly cost (Keep this separate or add to costs.ts? For now, separate)
+    // Use TEAM_MEMBER_MONTHLY_COSTS
     const teamBurn = (
-        state.team.engineers.length * 1000 +
-        state.team.designers.length * 800 +
-        state.team.marketers.length * 700
+        state.team.engineers.length * TEAM_MEMBER_MONTHLY_COSTS.engineer +
+        state.team.designers.length * TEAM_MEMBER_MONTHLY_COSTS.designer +
+        state.team.marketers.length * TEAM_MEMBER_MONTHLY_COSTS.marketer
     );
-    const assetBurn = state.assets.servers * 200; // Only servers have ongoing cost here
-    const userBurn = state.users * 0.05; // Decreased from 0.5 // Add per-user cost
-    // Include recurring action costs
-    // return assetBurn + userBurn + state.recurringActionDailyCost;
-    return teamBurn + assetBurn + userBurn + state.recurringActionDailyCost;
+    const assetBurn = state.assets.servers * 200; // Server monthly cost (Consider moving to costs.ts as well)
+    const userBurn = state.users * 0.05; // Per-user monthly cost
+    // Include recurring action monthly costs
+    return founderBurn + teamBurn + assetBurn + userBurn + state.recurringActionMonthlyCost; // Use monthly cost field
   }
 
-  // Calculate company valuation
+  // Calculate company valuation (Unaffected by timescale)
   const calculateValuation = (state: GameState = gameState) => {
     const userValue = state.users * 10
-    // const assetValue =
-    //   state.assets.engineers * 20000 +
-    //   state.assets.designers * 15000 +
-    //   state.assets.marketers * 12000 +
-    //   state.assets.servers * 8000 +
-    //   state.assets.patents * 50000
+    const founderValue = state.team.founder ? 25000 : 0;
     const teamValue = (
         state.team.engineers.length * 20000 +
         state.team.designers.length * 15000 +
@@ -149,53 +125,47 @@ export default function StartupWars() {
         state.assets.servers * 8000 +
         state.assets.patents * 50000
     );
-
-    // Small bonus for active growth strategies
     const growthBonus = state.activeRecurringActions.length * 5000;
-
-    // return userValue + assetValue + growthBonus;
-    return userValue + teamValue + assetValue + growthBonus;
+    return userValue + founderValue + teamValue + assetValue + growthBonus;
   }
 
-  // Handle next day action (Updated for Dialog)
-  const nextDay = () => {
+  // Handle next month action
+  const nextMonth = () => {
     if (gameState.gameOver) return
 
     const burnRate = calculateBurnRate(gameState)
-    const dailyRevenue = gameState.users * gameState.revenuePerUser
-    let newCash = gameState.cash - burnRate + dailyRevenue
+    const monthlyRevenue = gameState.users * gameState.mrrPerUser // Use MRR per user
+    let newCash = gameState.cash - burnRate + monthlyRevenue
 
     if (newCash <= 0) {
       setGameState({
         ...gameState,
         cash: 0,
         gameOver: true,
-        events: [...gameState.events, { day: gameState.day, type: "negative", message: "OUT OF CASH! GAME OVER" }],
+        events: [...gameState.events, { month: gameState.month, type: "negative", message: "OUT OF CASH! GAME OVER" }], // Use month
       })
       return
     }
 
-    // const assetGrowthRate =
-    //   1 + gameState.assets.engineers * 0.05 + gameState.assets.marketers * 0.1 + gameState.assets.servers * 0.02
+    // Organic user growth calculation (Interpret factors as monthly)
     const teamGrowthFactor = gameState.team.engineers.length * 0.05 + gameState.team.marketers.length * 0.1;
     const assetGrowthFactor = gameState.assets.servers * 0.02;
-    const baseGrowthRate = 1;
+    const baseGrowthRate = 1; // Base rate (no decline/growth)
     const totalGrowthRate = baseGrowthRate + teamGrowthFactor + assetGrowthFactor;
+    let newUsers = Math.floor(gameState.users * totalGrowthRate) // Apply monthly growth rate
 
-    // let newUsers = Math.floor(gameState.users * assetGrowthRate)
-    let newUsers = Math.floor(gameState.users * totalGrowthRate)
-
+    // Growth from recurring actions
     let recurringUserGrowth = 0;
     let recurringEvents: GameEvent[] = [];
     gameState.activeRecurringActions.forEach(actionId => {
         const action = RECURRING_ACTIONS.find(a => a.id === actionId);
         if (action) {
-            const dailyEffect = action.dailyEffect(gameState);
-            recurringUserGrowth += dailyEffect.userIncrease;
+            const monthlyEffect = action.monthlyEffect(gameState); // Use monthlyEffect
+            recurringUserGrowth += monthlyEffect.userIncrease;
             recurringEvents.push({
-                day: gameState.day + 1,
+                month: gameState.month + 1, // Use next month
                 type: "info",
-                message: `${action.name} added ${dailyEffect.userIncrease.toLocaleString()} users.`
+                message: `${action.name} added ${monthlyEffect.userIncrease.toLocaleString()} users this month.`
             });
         }
     });
@@ -205,15 +175,15 @@ export default function StartupWars() {
 
     let updatedState: GameState = {
       ...gameState,
-      day: gameState.day + 1,
+      month: gameState.month + 1, // Increment month
       cash: newCash,
       valuation: newValuation,
       users: newUsers,
       events: [...gameState.events, ...recurringEvents],
     }
 
-    // Check for random event AFTER daily updates
-    if (Math.random() < 0.2) { // Keep event trigger chance
+    // Check for random event AFTER monthly updates
+    if (Math.random() < 0.2) { // Keep event trigger chance (per month now)
       const randomEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)]
 
       let eventApplicable = true;
@@ -245,13 +215,13 @@ export default function StartupWars() {
           const cashChange = stateAfterEffect.cash - stateBeforeEffect.cash;
           const userChange = stateAfterEffect.users - stateBeforeEffect.users;
           const valuationChange = valuationAfterEffect - valuationBeforeEffect;
-          const revenuePerUserChange = stateAfterEffect.revenuePerUser - stateBeforeEffect.revenuePerUser;
+          const mrrPerUserChange = stateAfterEffect.mrrPerUser - stateBeforeEffect.mrrPerUser; // Use mrrPerUser
 
           // Create impact message
           let impactParts: string[] = [];
           if (cashChange !== 0) impactParts.push(`Cash: ${cashChange > 0 ? '+' : ''}${cashChange.toLocaleString()}`);
           if (userChange !== 0) impactParts.push(`Users: ${userChange > 0 ? '+' : ''}${userChange.toLocaleString()}`);
-          if (revenuePerUserChange !== 0) impactParts.push(`Rev/User: ${revenuePerUserChange > 0 ? '+' : ''}${revenuePerUserChange.toFixed(2)}`);
+          if (mrrPerUserChange !== 0) impactParts.push(`MRR/User: ${mrrPerUserChange > 0 ? '+' : ''}${mrrPerUserChange.toFixed(2)}`); // Use MRR/User
           if (valuationChange !== 0) impactParts.push(`Valuation: ${valuationChange > 0 ? '+' : ''}${valuationChange.toLocaleString()}`);
           const impactMessage = impactParts.length > 0 ? impactParts.join(', ') : "No immediate numerical change.";
 
@@ -262,68 +232,80 @@ export default function StartupWars() {
               cashChange,
               userChange,
               valuationChange,
-              revenuePerUserChange,
+              mrrPerUserChange, // Use mrrPerUserChange
               message: impactMessage
           });
 
           // Update the main game state with the result of the event
+          // Event effects already add their own message to stateAfterEffect.events
           updatedState = {
               ...stateAfterEffect,
               valuation: valuationAfterEffect // Ensure valuation is the updated one
           };
 
-           // Add the standard event log message (using the event's description for context)
-           updatedState.events = [
-               ...updatedState.events,
-               { day: updatedState.day, type: "info" as GameEvent['type'], message: randomEvent.description }
-           ];
+           // Event log message is added within the event effect itself now
         }
       }
     } // End of random event check block
 
-    // Recalculation of valuation outside the event block is removed as it's handled within now.
-
-    setGameState(updatedState) // Update state with daily changes & event effects
+    setGameState(updatedState) // Update state with monthly changes & event effects
   }
 
-  // Handle hiring team members (Updated to accept specific member)
+  // Handle hiring team members
   const hireTeamMember = (memberToHire: TeamMember) => {
     if (gameState.gameOver) return;
-    // const costs = getHiringCosts();
-    const cost = HIRING_COSTS[memberToHire.type]; // Use imported costs
+
+    if (memberToHire.type === 'founder') {
+        console.error("Cannot hire a founder using this function.");
+        setGameState((prevState) => ({
+            ...prevState,
+            events: [...prevState.events, { month: prevState.month, type: "negative", message: "Internal error: Cannot hire founder." }], // Use month
+        }));
+        return;
+    }
+
+    // No upfront cost deduction or check
+    // const hirableType = memberToHire.type as Exclude<TeamMemberType, 'founder'>;
+    // const cost = TEAM_MEMBER_MONTHLY_COSTS[hirableType]; // No longer needed for upfront cost
     const memberName = memberToHire.type.charAt(0).toUpperCase() + memberToHire.type.slice(1);
 
+    // Remove cash check
+    /*
     if (gameState.cash < cost) {
       setGameState((prevState) => ({
         ...prevState,
         events: [
           ...prevState.events,
-          { day: prevState.day, type: "negative", message: `Not enough cash to hire ${memberName}!` },
+          { month: prevState.month, type: "negative", message: `Not enough cash to hire ${memberName}!` }, // Use month
         ],
       }));
       return;
     }
+    */
 
     setGameState((prevState) => {
-      // Add the specific member to the correct array
-      const teamArrayKey = (memberToHire.type + "s") as keyof TeamMembers;
-      const newTeamArray = [...prevState.team[teamArrayKey], memberToHire];
+      const teamArrayKey = (memberToHire.type + "s") as keyof Pick<TeamMembers, 'engineers' | 'designers' | 'marketers'>;
+      const existingArray = prevState.team[teamArrayKey] as TeamMember[];
+      const newTeamArray = [...existingArray, memberToHire];
 
       const newTeam = {
         ...prevState.team,
         [teamArrayKey]: newTeamArray,
       };
 
+      // No cash deduction: prevState.cash - cost
       const newState = {
         ...prevState,
-        cash: prevState.cash - cost,
+        // cash: prevState.cash - cost, // REMOVED
         team: newTeam,
-        valuation: calculateValuation({ ...prevState, team: newTeam }), // Recalculate valuation
+        valuation: calculateValuation({ ...prevState, team: newTeam }), // Valuation might change slightly if it depended on cash previously, but it primarily depends on team composition
         events: [
           ...prevState.events,
-          { day: prevState.day, type: "info" as GameEvent['type'], message: `Hired ${memberName} (ID: ${memberToHire.id.substring(0, 6)}) for $${cost.toLocaleString()}` }, // Added ID substring for clarity
+          // Updated message - no cost mentioned, focus on burn rate increase
+          { month: prevState.month, type: "info" as GameEvent['type'], message: `Hired ${memberName} (ID: ${memberToHire.id.substring(0, 6)}). Monthly cost will increase.` }, // Use month
         ],
       };
+      // Note: Burn rate will automatically be higher next month due to calculateBurnRate using the updated team count.
       return newState;
     });
   }
@@ -331,8 +313,7 @@ export default function StartupWars() {
   // Handle buying assets (servers, patents)
   const buyAsset = (assetType: AssetType) => {
     if (gameState.gameOver) return;
-    // const prices = getAssetPrices()
-    const price = ASSET_PRICES[assetType]; // Use imported prices
+    const price = ASSET_PRICES[assetType];
     const assetName = assetType.charAt(0).toUpperCase() + assetType.slice(1)
 
     if (gameState.cash < price) {
@@ -340,7 +321,7 @@ export default function StartupWars() {
         ...prevState,
         events: [
           ...prevState.events,
-          { day: prevState.day, type: "negative", message: `Not enough cash to acquire ${assetName}!` },
+          { month: prevState.month, type: "negative", message: `Not enough cash to acquire ${assetName}!` }, // Use month
         ],
       }))
       return
@@ -349,19 +330,16 @@ export default function StartupWars() {
     setGameState((prevState) => {
        const newAssets = {
          ...prevState.assets,
-         // [(assetType + "s") as keyof GameAssets]: prevState.assets[(assetType + "s") as keyof GameAssets] + 1,
          [(assetType + "s") as keyof Assets]: prevState.assets[(assetType + "s") as keyof Assets] + 1,
        };
        const newState = {
             ...prevState,
             cash: prevState.cash - price,
             assets: newAssets,
-            // Recalculate valuation immediately after asset change
-            // valuation: calculateValuation({...prevState, assets: newAssets}),
-            valuation: calculateValuation({...prevState, assets: newAssets }), // Use updated state
+            valuation: calculateValuation({...prevState, assets: newAssets }),
             events: [
                 ...prevState.events,
-                { day: prevState.day, type: "info" as GameEvent['type'], message: `Acquired ${assetName} for $${price.toLocaleString()}` },
+                { month: prevState.month, type: "info" as GameEvent['type'], message: `Acquired ${assetName} for $${price.toLocaleString()}` }, // Use month
             ],
        };
        return newState;
@@ -379,7 +357,7 @@ export default function StartupWars() {
         ...prevState,
         events: [
           ...prevState.events,
-          { day: prevState.day, type: "negative", message: `Not enough cash for ${action.name} ($${action.cost.toLocaleString()} required)` },
+          { month: prevState.month, type: "negative", message: `Not enough cash for ${action.name} ($${action.cost.toLocaleString()} required)` }, // Use month
         ],
       }));
       return;
@@ -388,14 +366,14 @@ export default function StartupWars() {
     // Deduct cost and execute action
     setGameState((prevState) => {
         const stateAfterCost = { ...prevState, cash: prevState.cash - action.cost };
-        const finalState = action.execute(stateAfterCost);
+        const finalState = action.execute(stateAfterCost); // Action effect might add its own event with month
         // Recalculate valuation after potential user changes
         return {
             ...finalState,
             valuation: calculateValuation(finalState),
             events: [ // Add cost event *before* action result event
              ...prevState.events, // Keep original events
-             { day: prevState.day, type: "info" as GameEvent['type'], message: `Spent $${action.cost.toLocaleString()} on ${action.name}.` },
+             { month: prevState.month, type: "info" as GameEvent['type'], message: `Spent $${action.cost.toLocaleString()} on ${action.name}.` }, // Use month
              ...finalState.events.slice(prevState.events.length) // Add only the new events from the action
             ]
         };
@@ -419,14 +397,14 @@ export default function StartupWars() {
                 ...prevState,
                 events: [
                     ...prevState.events,
-                    { day: prevState.day, type: "negative", message: `Not enough cash for ${action.name} setup ($${cost.toLocaleString()} required)` },
+                    { month: prevState.month, type: "negative", message: `Not enough cash for ${action.name} setup ($${cost.toLocaleString()} required)` }, // Use month
                 ],
             }));
             return;
         }
         newCash -= cost;
         if (cost > 0) {
-           setupCostEvent = { day: gameState.day, type: "info" as GameEvent['type'], message: `Paid $${cost.toLocaleString()} setup cost for ${action.name}.` };
+           setupCostEvent = { month: gameState.month, type: "info" as GameEvent['type'], message: `Paid $${cost.toLocaleString()} setup cost for ${action.name}.` }; // Use month
         }
     }
 
@@ -435,13 +413,14 @@ export default function StartupWars() {
             ? prevState.activeRecurringActions.filter(id => id !== actionId)
             : [...prevState.activeRecurringActions, actionId];
 
-        const newRecurringCost = newActiveActions.reduce((total, id) => {
+        // Calculate new total *monthly* cost from recurring actions
+        const newRecurringMonthlyCost = newActiveActions.reduce((total, id) => {
             const act = RECURRING_ACTIONS.find(a => a.id === id);
-            return total + (act?.dailyCost ?? 0);
+            return total + (act?.monthlyCost ?? 0); // Use monthlyCost
         }, 0);
 
         const toggleEvent: GameEvent = {
-            day: prevState.day,
+            month: prevState.month, // Use month
             type: "info" as GameEvent['type'],
             message: isActive ? `Stopped ${action.name}.` : `Started ${action.name}.`
         };
@@ -456,22 +435,21 @@ export default function StartupWars() {
             ...prevState,
             cash: newCash,
             activeRecurringActions: newActiveActions,
-            recurringActionDailyCost: newRecurringCost,
+            recurringActionMonthlyCost: newRecurringMonthlyCost, // Set the new monthly cost state
             events: allNewEvents,
-            // Recalculate valuation (might change slightly if we add bonus later)
             valuation: calculateValuation({...prevState, activeRecurringActions: newActiveActions}),
         };
     });
  }
 
-  // Handle acquisition offer (Now called by EventDialog)
+  // Handle acquisition offer
   const handleAcquisitionOffer = (accept: boolean) => {
     const offerAmount = acquisitionOfferAmount ?? 0;
     let finalEvents = [...gameState.events];
 
     if (accept) {
       finalEvents.push({
-          day: gameState.day,
+          month: gameState.month, // Use month
           type: "positive" as GameEvent['type'],
           message: `ACQUIRED! Sold for $${offerAmount.toLocaleString()} (Valuation: $${gameState.valuation.toLocaleString()})`,
       });
@@ -483,7 +461,7 @@ export default function StartupWars() {
       }));
     } else {
       finalEvents.push({
-          day: gameState.day,
+          month: gameState.month, // Use month
           type: "info" as GameEvent['type'],
           message: "Declined acquisition offer",
       });
@@ -493,83 +471,100 @@ export default function StartupWars() {
       }));
     }
 
-    // Close dialog and clear offer/event state
     setCurrentEvent(null);
     setAcquisitionOfferAmount(null);
-    setCurrentEventImpact(null); // Clear impact state here too
+    setCurrentEventImpact(null);
   }
 
   // Reset game
   const resetGame = () => {
-    setGameState(INITIAL_STATE)
+    setGameState(INITIAL_STATE) // Resets to initial state which uses month, mrrPerUser etc.
     setCurrentEvent(null)
-    setCurrentEventImpact(null); // Clear impact on reset too
+    setCurrentEventImpact(null);
     setAcquisitionOfferAmount(null);
+    setSetupStep("start");
+    setPlayerAttributes(null);
   }
 
   // Need to also clear impact when the dialog is closed via onClose
   const handleDialogClose = () => {
       setCurrentEvent(null);
       setCurrentEventImpact(null);
-      // Note: acquisitionOfferAmount is cleared in handleAcquisitionOffer if decision made
   }
 
   return (
     <div className="container mx-auto py-6 max-w-5xl">
-      <div className="flex flex-col space-y-6">
-        <GameHeader title="🚀 Startup Wars"/>
+      {/* Conditional Rendering based on setupStep */}
+      {setupStep === "start" && (
+        <StartScreen onStartGame={handleStartGame} />
+      )}
 
-        <div className="absolute top-6 right-6">
-           <ModeToggle />
-        </div>
+      {setupStep === "name" && (
+        <NameInput onSubmitName={handleNameSubmit} />
+      )}
 
-        <GameStats
-          gameState={gameState}
-          calculateBurnRate={() => calculateBurnRate(gameState)}
-        />
+      {setupStep === "attributes" && (
+        <AttributeAllocator onSubmitAttributes={handleAttributesSubmit} totalPoints={25} />
+      )}
 
-        {/* Next Day Button - Moved outside tabs */}
-        {!gameState.gameOver && (
-            <div className="flex justify-end mt-4">
-                <Button onClick={nextDay} size="lg">
-                    Next Day ({gameState.day})
-                </Button>
+      {setupStep === "complete" && (
+        // Render the main game UI only when setup is complete
+        <>
+          <div className="flex flex-col space-y-6">
+            <GameHeader title={`🚀 ${gameState.playerName}'s Startup`} />
+
+            <div className="absolute top-6 right-6">
+              <ModeToggle />
             </div>
-        )}
 
-        {/* Main Game Interface */}
-        <MainTabs
-            gameState={gameState}
-            // getHiringCosts={getHiringCosts} // Pass hiring costs getter - REMOVE
-            // getAssetPrices={getAssetPrices} // Pass asset prices getter - REMOVE
-            hiringCosts={HIRING_COSTS} // Pass imported costs directly
-            assetPrices={ASSET_PRICES} // Pass imported prices directly
-            hireTeamMember={hireTeamMember} // Pass hiring function
-            buyAsset={buyAsset} // Pass updated asset buying function
-            resetGame={resetGame}
-            growthActions={GROWTH_ACTIONS}
-            recurringActions={RECURRING_ACTIONS}
-            executeGrowthAction={executeGrowthAction}
-            toggleRecurringAction={toggleRecurringAction}
-            calculateBurnRate={() => calculateBurnRate(gameState)}
-         />
+            {/* GameStats component now receives state with month, mrrPerUser etc. */}
+            <GameStats
+              gameState={gameState}
+              calculateBurnRate={() => calculateBurnRate(gameState)}
+            />
 
-        {/* Game Over Screen */}
-        {gameState.gameOver && (
-          <GameOverScreen gameState={gameState} resetGame={resetGame} />
-        )}
+            {/* Next Month Button */}
+            {!gameState.gameOver && (
+              <div className="flex justify-end mt-4">
+                <Button onClick={nextMonth} size="lg"> {/* Changed onClick to nextMonth */}
+                  Next Month ({gameState.month}) {/* Changed text to Next Month */}
+                </Button>
+              </div>
+            )}
 
-        {/* Event Dialog - Replaced inline Dialog */}
-        <EventDialog
-          currentEvent={currentEvent}
-          eventImpact={currentEventImpact} // Pass impact state
-          acquisitionOfferAmount={acquisitionOfferAmount}
-          gameStateValuation={gameState.valuation} // Pass valuation
-          onClose={handleDialogClose} // Pass the consolidated close handler
-          onAcquisitionDecision={handleAcquisitionOffer} // Pass handler
-        />
+            {/* Main Game Interface - Components receive updated gameState and recurringActions */}
+            <MainTabs
+              gameState={gameState}
+              hiringCosts={TEAM_MEMBER_MONTHLY_COSTS}
+              assetPrices={ASSET_PRICES}
+              hireTeamMember={hireTeamMember}
+              buyAsset={buyAsset}
+              resetGame={resetGame}
+              growthActions={GROWTH_ACTIONS}
+              recurringActions={RECURRING_ACTIONS}
+              executeGrowthAction={executeGrowthAction}
+              toggleRecurringAction={toggleRecurringAction}
+              calculateBurnRate={() => calculateBurnRate(gameState)}
+            />
 
-      </div>
+            {/* Game Over Screen - receives updated gameState */}
+            {gameState.gameOver && (
+              <GameOverScreen gameState={gameState} resetGame={resetGame} />
+            )}
+
+            {/* Event Dialog - receives updated gameState, eventImpact etc */}
+            <EventDialog
+              currentEvent={currentEvent}
+              eventImpact={currentEventImpact}
+              acquisitionOfferAmount={acquisitionOfferAmount}
+              gameStateValuation={gameState.valuation}
+              onClose={handleDialogClose}
+              onAcquisitionDecision={handleAcquisitionOffer}
+            />
+
+          </div>
+        </>
+      )}
     </div>
   )
 }

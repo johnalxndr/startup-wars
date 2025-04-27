@@ -7,11 +7,11 @@ export const RECURRING_ACTIONS: RecurringAction[] = [
     name: "Run Paid Ads",
     description: "Run targeted ads for steady user growth.",
     setupCost: 1000,
-    dailyCost: 250,
-    dailyEffect: (state: GameState) => {
-      const baseGrowth = 50;
-      const marketerBonus = state.team.marketers.length * 10;
-      const randomFactor = 0.8 + Math.random() * 0.4; // +/- 20% variance
+    monthlyCost: 7500,
+    monthlyEffect: (state: GameState) => {
+      const baseGrowth = 1500;
+      const marketerBonus = state.team.marketers.length * 300;
+      const randomFactor = 0.8 + Math.random() * 0.4;
       return { userIncrease: Math.floor((baseGrowth + marketerBonus) * randomFactor) };
     },
   },
@@ -20,13 +20,14 @@ export const RECURRING_ACTIONS: RecurringAction[] = [
     name: "SEO Campaign",
     description: "Invest in SEO for organic growth. Slower, but compounds.",
     setupCost: 3000,
-    dailyCost: 200,
-    dailyEffect: (state: GameState) => {
-        // Growth depends on # days active & engineers
-        const daysActive = state.events.filter(e => e.message.includes("Started SEO Campaign")).length > 0 ? state.day - state.events.find(e => e.message.includes("Started SEO Campaign"))!.day : 1;
-        const baseGrowth = Math.log(daysActive + 1) * 10; // Logarithmic growth over time
-        const engineerBonus = state.team.engineers.length * 2;
-        const randomFactor = 0.9 + Math.random() * 0.2; // +/- 10% variance
+    monthlyCost: 6000,
+    monthlyEffect: (state: GameState) => {
+        // Growth depends on # months active & engineers
+        const startEvent = state.events.find(e => e.message.includes("Started SEO Campaign"));
+        const monthsActive = startEvent ? state.month - startEvent.month + 1 : 1;
+        const baseGrowth = Math.log(monthsActive + 1) * 300;
+        const engineerBonus = state.team.engineers.length * 60;
+        const randomFactor = 0.9 + Math.random() * 0.2;
       return { userIncrease: Math.floor((baseGrowth + engineerBonus) * randomFactor) };
     },
   },

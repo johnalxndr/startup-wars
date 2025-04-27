@@ -11,8 +11,6 @@ const attributeLabels: Record<keyof TeamMemberAttributes, string> = {
   coding: "Coding",
   design: "Design",
   marketing: "Marketing",
-  communication: "Communication",
-  problemSolving: "Problem Solving",
 };
 
 export function AttributeHoverCard({ attributes, children }: AttributeHoverCardProps) {
@@ -24,7 +22,8 @@ export function AttributeHoverCard({ attributes, children }: AttributeHoverCardP
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent className="w-60 space-y-3 p-4">
         <h4 className="text-sm font-semibold mb-2">Attributes</h4>
-        {Object.entries(attributes).map(([key, value]) => (
+        {Object.entries(attributes)
+          .map(([key, value]) => (
           <div key={key} className="grid grid-cols-3 items-center gap-2">
             <span className="text-xs font-medium col-span-1">
               {attributeLabels[key as keyof TeamMemberAttributes]}

@@ -11,8 +11,8 @@ interface FinancialsTabProps {
 
 export function FinancialsTab({ gameState, calculateBurnRate }: FinancialsTabProps) {
   const burnRate = calculateBurnRate();
-  const dailyRevenue = gameState.users * gameState.revenuePerUser;
-  const netCashFlow = dailyRevenue - burnRate;
+  const monthlyRevenue = gameState.users * gameState.mrrPerUser;
+  const netMonthlyCashFlow = monthlyRevenue - burnRate;
 
   return (
     <Card>
@@ -43,27 +43,27 @@ export function FinancialsTab({ gameState, calculateBurnRate }: FinancialsTabPro
           <div className="flex items-center space-x-3 p-4 border rounded-lg">
             <TrendingDown className="w-6 h-6 text-red-500" />
             <div>
-              <p className="text-sm text-muted-foreground">Daily Burn Rate</p>
+              <p className="text-sm text-muted-foreground">Monthly Burn Rate</p>
               <p className="text-xl font-semibold">${burnRate.toLocaleString()}</p>
             </div>
           </div>
 
-          {/* Daily Revenue */}
+          {/* Monthly Revenue */}
            <div className="flex items-center space-x-3 p-4 border rounded-lg">
              <DollarSign className="w-6 h-6 text-yellow-500" />
              <div>
-              <p className="text-sm text-muted-foreground">Est. Daily Revenue</p>
-              <p className="text-xl font-semibold">${dailyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-sm text-muted-foreground">Est. Monthly Revenue</p>
+              <p className="text-xl font-semibold">${monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
              </div>
            </div>
            
-           {/* Net Cash Flow */}
+           {/* Net Monthly Cash Flow */}
             <div className="flex items-center space-x-3 p-4 border rounded-lg col-span-2">
-             <DollarSign className={`w-6 h-6 ${netCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+             <DollarSign className={`w-6 h-6 ${netMonthlyCashFlow >= 0 ? 'text-green-500' : 'text-red-500'}`} />
              <div>
-              <p className="text-sm text-muted-foreground">Est. Daily Net Cash Flow</p>
-              <p className={`text-xl font-semibold ${netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netCashFlow >= 0 ? '+' : ''}${netCashFlow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <p className="text-sm text-muted-foreground">Est. Monthly Net Cash Flow</p>
+              <p className={`text-xl font-semibold ${netMonthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {netMonthlyCashFlow >= 0 ? '+' : ''}${netMonthlyCashFlow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
              </div>
            </div>

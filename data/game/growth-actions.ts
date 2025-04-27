@@ -15,7 +15,7 @@ export const GROWTH_ACTIONS: GrowthAction[] = [
         users: state.users + newUserGrowth,
         events: [
           ...state.events,
-          { day: state.day, type: "positive", message: `Product Hunt Launch! Users +${newUserGrowth.toLocaleString()} (+${Math.round(userGrowthMultiplier * 100)}%)` }
+          { month: state.month, type: "positive", message: `Product Hunt Launch! Users +${newUserGrowth.toLocaleString()} (+${Math.round(userGrowthMultiplier * 100)}%)` }
         ],
       };
     },
@@ -43,7 +43,7 @@ export const GROWTH_ACTIONS: GrowthAction[] = [
         users: state.users + newUserGrowth,
         events: [
           ...state.events,
-          { day: state.day, type: messageType, message: messageText }
+          { month: state.month, type: messageType, message: messageText }
         ],
       };
     },

@@ -8,27 +8,26 @@ const generateAttributes = (base: Partial<TeamMemberAttributes> = {}): TeamMembe
     coding: base.coding ?? randomStat(),
     design: base.design ?? randomStat(),
     marketing: base.marketing ?? randomStat(),
-    communication: base.communication ?? randomStat(),
-    problemSolving: base.problemSolving ?? randomStat(),
   };
 };
 
 export const INITIAL_STATE: GameState = {
-  day: 1,
+  month: 1,
   cash: 50000,
   valuation: 0,
   users: 100,
-  revenuePerUser: 0.2,
+  mrrPerUser: 6.0,
   team: {
     engineers: [
       {
         id: uuidv4(),
         type: 'engineer',
-        attributes: generateAttributes({ coding: 5, problemSolving: 4 }),
+        attributes: generateAttributes({ coding: 5 }),
       }
     ],
     designers: [],
     marketers: [],
+    founder: null,
   },
   assets: {
     servers: 1,
@@ -37,5 +36,6 @@ export const INITIAL_STATE: GameState = {
   events: [],
   gameOver: false,
   activeRecurringActions: [],
-  recurringActionDailyCost: 0,
+  recurringActionMonthlyCost: 0,
+  playerName: null,
 } 
