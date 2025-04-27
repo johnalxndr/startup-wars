@@ -1,7 +1,7 @@
 // Placeholder for MainTabs component
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GameState, AssetType, GrowthAction, RecurringAction, GameEvent } from "@/app/types"; // Removed MarketPrices
+import { GameState, AssetType, GrowthAction, RecurringAction, GameEvent, TeamMember, HiringCosts, AssetPrices } from "@/app/types"; // Removed MarketPrices
 
 // Import Tab Content Placeholders (we'll implement these later)
 import { FinancialsTab } from './tabs/financials-tab';
@@ -16,8 +16,8 @@ import { MainTabsProps } from "@/app/types";
 
 export function MainTabs({ 
     gameState,
-    getHiringCosts,
-    getAssetPrices,
+    hiringCosts,
+    assetPrices,
     hireTeamMember,
     buyAsset,
     resetGame,
@@ -43,8 +43,8 @@ export function MainTabs({
       <TabsContent value="team">
          <TeamTab 
             gameState={gameState} 
+            hiringCosts={hiringCosts}
             hireTeamMember={hireTeamMember}
-            getHiringCosts={getHiringCosts}
          />
       </TabsContent>
       
@@ -56,7 +56,7 @@ export function MainTabs({
              recurringActions={recurringActions} 
              executeGrowthAction={executeGrowthAction} 
              toggleRecurringAction={toggleRecurringAction} 
-             getAssetPrices={getAssetPrices}
+             assetPrices={assetPrices}
         />
       </TabsContent>
 

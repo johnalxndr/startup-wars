@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating unique IDs
 
 import { ModeToggle } from "@/components/theme-toggle"
 import {
@@ -14,7 +15,10 @@ import {
   AssetPrices,
   RandomEvent,
   GrowthAction,
-  RecurringAction
+  RecurringAction,
+  TeamMemberAttributes,
+  TeamMember,
+  EventImpact // Import EventImpact
 } from "@/app/types";
 
 // Import new components
@@ -24,202 +28,87 @@ import { GameOverScreen } from "@/components/game/game-over-screen";
 import { MainTabs } from "@/components/game/main-tabs";
 import { Button } from "@/components/ui/button";
 import { EventDialog } from '@/components/game/event-dialog';
+import { RANDOM_EVENTS } from "@/data/game/random-events"; // Import RANDOM_EVENTS
+import { INITIAL_STATE } from "@/data/game/initial-state"; // Import INITIAL_STATE
+import { GROWTH_ACTIONS } from "@/data/game/growth-actions"; // Import GROWTH_ACTIONS
+import { RECURRING_ACTIONS } from "@/data/game/recurring-actions"; // Import RECURRING_ACTIONS
+import { HIRING_COSTS, ASSET_PRICES } from "@/data/game/costs"; // Import costs
 
 // Game constants
 
-const INITIAL_STATE: GameState = {
-  day: 1,
-  cash: 50000,
-  valuation: 0,
-  users: 100,
-  revenuePerUser: 0.1,
-  team: {
-    engineers: 1,
-    designers: 0,
-    marketers: 0,
-  },
-  assets: {
-    servers: 1,
-    patents: 0,
-  },
-  events: [],
-  gameOver: false,
-  activeRecurringActions: [],
-  recurringActionDailyCost: 0,
-}
+// Helper to generate random attributes
+// const generateAttributes = (base: Partial<TeamMemberAttributes> = {}): TeamMemberAttributes => {
+//   const randomStat = () => Math.floor(Math.random() * 8) + 1; // 1-8
+//   return {
+//     coding: base.coding ?? randomStat(),
+//     design: base.design ?? randomStat(),
+//     marketing: base.marketing ?? randomStat(),
+//     communication: base.communication ?? randomStat(),
+//     problemSolving: base.problemSolving ?? randomStat(),
+//   };
+// };
+
+// const INITIAL_STATE: GameState = {
+//   day: 1,
+//   cash: 50000,
+//   valuation: 0,
+//   users: 100,
+//   revenuePerUser: 0.2,
+//   team: {
+//     engineers: [
+//       {
+//         id: uuidv4(),
+//         type: 'engineer',
+//         attributes: generateAttributes({ coding: 5, problemSolving: 4 }),
+//       }
+//     ],
+//     designers: [],
+//     marketers: [],
+//   },
+//   assets: {
+//     servers: 1,
+//     patents: 0,
+//   },
+//   events: [],
+//   gameOver: false,
+//   activeRecurringActions: [],
+//   recurringActionDailyCost: 0,
+// }
 
 // Random events that can occur
-const RANDOM_EVENTS: RandomEvent[] = [
-  {
-    id: "viral",
-    title: "Viral Success!",
-    description: "Your app goes viral on TikTok! Users surge by 500%.",
-    effect: (state: GameState) => {
-      const newUsers = state.users * 5;
-      return {
-        ...state,
-        users: newUsers,
-        events: [
-          ...state.events,
-          { day: state.day, type: "positive", message: `App went viral! Users +${(newUsers - state.users).toLocaleString()} (+500%)` },
-        ],
-      };
-    },
-  },
-  {
-    id: "press",
-    title: "Press Coverage",
-    description: "Major tech blog writes about your startup.",
-    effect: (state: GameState) => {
-      const newUserGrowth = Math.floor(state.users * 0.2);
-      return {
-        ...state,
-        users: state.users + newUserGrowth,
-        events: [
-          ...state.events,
-          { day: state.day, type: "positive", message: `Press coverage! Users +${newUserGrowth.toLocaleString()} (+20%)` },
-        ],
-      };
-    },
-  },
-  {
-    id: "outage",
-    title: "Server Outage!",
-    description: "Your servers crashed during peak usage.",
-    effect: (state: GameState) => {
-      const userLoss = Math.floor(state.users * 0.3);
-      return {
-        ...state,
-        users: Math.max(0, state.users - userLoss),
-        events: [...state.events, { day: state.day, type: "negative", message: `Server outage! Lost ${userLoss.toLocaleString()} users (-30%)` }],
-      };
-    },
-  },
-  {
-    id: "lawsuit",
-    title: "Legal Trouble",
-    description: "Ex-employee sues for IP theft.",
-    effect: (state: GameState) => ({
-      ...state,
-      cash: Math.max(0, state.cash - 25000),
-      events: [...state.events, { day: state.day, type: "negative", message: "Legal fees! -$25,000" }],
-    }),
-  },
-  {
-    id: "acquisition",
-    title: "Acquisition Offer",
-    description: "A larger company wants to buy you out.",
-    effect: (state: GameState) => ({
-      ...state,
-      events: [...state.events, { day: state.day, type: "special", message: "Received acquisition offer!" }],
-      // Special event that will be handled separately in the UI
-    }),
-  },
-]
+// const RANDOM_EVENTS: RandomEvent[] = [...]
+// [Entire RANDOM_EVENTS array definition removed]
 
 // Define Growth Actions
-const GROWTH_ACTIONS: GrowthAction[] = [
-  {
-    id: "product_hunt",
-    name: "Product Hunt Launch",
-    description: "Launch on Product Hunt for a potential user boost.",
-    cost: 5000,
-    execute: (state: GameState) => {
-      const userGrowthMultiplier = 0.5 + Math.random() * 2; // 50% to 250% growth
-      const newUserGrowth = Math.floor(state.users * userGrowthMultiplier);
-      return {
-        ...state,
-        users: state.users + newUserGrowth,
-        events: [
-          ...state.events,
-          { day: state.day, type: "positive", message: `Product Hunt Launch! Users +${newUserGrowth.toLocaleString()} (+${Math.round(userGrowthMultiplier * 100)}%)` }
-        ],
-      };
-    },
-  },
-  {
-    id: "influencer_shoutout",
-    name: "Influencer Shoutout",
-    description: "Pay an influencer for a mention. Risky, but could pay off.",
-    cost: 15000,
-    execute: (state: GameState) => {
-      const successChance = 0.6; // 60% chance of success
-      let newUserGrowth = 0;
-      let messageType: GameEvent['type'] = 'negative';
-      let messageText = "Influencer Shoutout flopped! No significant user growth.";
-
-      if (Math.random() < successChance) {
-        const userGrowthMultiplier = 1 + Math.random() * 3; // 100% to 400% growth
-        newUserGrowth = Math.floor(state.users * userGrowthMultiplier);
-        messageType = 'positive';
-        messageText = `Influencer Shoutout success! Users +${newUserGrowth.toLocaleString()} (+${Math.round(userGrowthMultiplier*100)}%)`;
-      }
-
-      return {
-        ...state,
-        users: state.users + newUserGrowth,
-        events: [
-          ...state.events,
-          { day: state.day, type: messageType, message: messageText }
-        ],
-      };
-    },
-  },
-];
+// const GROWTH_ACTIONS: GrowthAction[] = [...]
+// [Entire GROWTH_ACTIONS array definition removed]
 
 // Define Recurring Actions
-const RECURRING_ACTIONS: RecurringAction[] = [
-  {
-    id: "paid_ads",
-    name: "Run Paid Ads",
-    description: "Run targeted ads for steady user growth.",
-    setupCost: 1000,
-    dailyCost: 500,
-    dailyEffect: (state: GameState) => {
-      const baseGrowth = 50;
-      const marketerBonus = state.team.marketers * 10;
-      const randomFactor = 0.8 + Math.random() * 0.4; // +/- 20% variance
-      return { userIncrease: Math.floor((baseGrowth + marketerBonus) * randomFactor) };
-    },
-  },
-  {
-    id: "seo_campaign",
-    name: "SEO Campaign",
-    description: "Invest in SEO for organic growth. Slower, but compounds.",
-    setupCost: 3000,
-    dailyCost: 200,
-    dailyEffect: (state: GameState) => {
-        // Growth depends on # days active & engineers
-        const daysActive = state.events.filter(e => e.message.includes("Started SEO Campaign")).length > 0 ? state.day - state.events.find(e => e.message.includes("Started SEO Campaign"))!.day : 1;
-        const baseGrowth = Math.log(daysActive + 1) * 10; // Logarithmic growth over time
-        const engineerBonus = state.team.engineers * 2;
-        const randomFactor = 0.9 + Math.random() * 0.2; // +/- 10% variance
-      return { userIncrease: Math.floor((baseGrowth + engineerBonus) * randomFactor) };
-    },
-  },
-];
+// const RECURRING_ACTIONS: RecurringAction[] = [...]
+// [Entire RECURRING_ACTIONS array definition removed]
 
 // Market prices -> Split into Hiring Costs and Asset Prices
-const getHiringCosts = (): HiringCosts => {
-  // Dynamic costs could be added later
-  return {
-    engineer: 10000,
-    designer: 8000,
-    marketer: 7000,
-  };
-}
-
-const getAssetPrices = (): AssetPrices => {
-  // Dynamic costs could be added later
-  return {
-    server: 5000,
-    patent: 25000,
-  };
-}
+// const getHiringCosts = (): HiringCosts => {
+//   // Dynamic costs could be added later
+//   return {
+//     engineer: 10000,
+//     designer: 8000,
+//     marketer: 7000,
+//   };
+// }
+//
+// const getAssetPrices = (): AssetPrices => {
+//   // Dynamic costs could be added later
+//   return {
+//     server: 5000,
+//     patent: 25000,
+//   };
+// }
 
 export default function StartupWars() {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE)
   const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null)
+  const [currentEventImpact, setCurrentEventImpact] = useState<EventImpact | null>(null); // New state for impact
   const [acquisitionOfferAmount, setAcquisitionOfferAmount] = useState<number | null>(null);
 
   // Calculate daily burn rate (Updated)
@@ -231,12 +120,12 @@ export default function StartupWars() {
     //   state.assets.servers * 200
     // );
     const teamBurn = (
-        state.team.engineers * 1000 +
-        state.team.designers * 800 +
-        state.team.marketers * 700
+        state.team.engineers.length * 1000 +
+        state.team.designers.length * 800 +
+        state.team.marketers.length * 700
     );
     const assetBurn = state.assets.servers * 200; // Only servers have ongoing cost here
-    const userBurn = state.users * 0.5; // Add per-user cost
+    const userBurn = state.users * 0.05; // Decreased from 0.5 // Add per-user cost
     // Include recurring action costs
     // return assetBurn + userBurn + state.recurringActionDailyCost;
     return teamBurn + assetBurn + userBurn + state.recurringActionDailyCost;
@@ -252,9 +141,9 @@ export default function StartupWars() {
     //   state.assets.servers * 8000 +
     //   state.assets.patents * 50000
     const teamValue = (
-        state.team.engineers * 20000 +
-        state.team.designers * 15000 +
-        state.team.marketers * 12000
+        state.team.engineers.length * 20000 +
+        state.team.designers.length * 15000 +
+        state.team.marketers.length * 12000
     );
     const assetValue = (
         state.assets.servers * 8000 +
@@ -288,7 +177,7 @@ export default function StartupWars() {
 
     // const assetGrowthRate =
     //   1 + gameState.assets.engineers * 0.05 + gameState.assets.marketers * 0.1 + gameState.assets.servers * 0.02
-    const teamGrowthFactor = gameState.team.engineers * 0.05 + gameState.team.marketers * 0.1;
+    const teamGrowthFactor = gameState.team.engineers.length * 0.05 + gameState.team.marketers.length * 0.1;
     const assetGrowthFactor = gameState.assets.servers * 0.02;
     const baseGrowthRate = 1;
     const totalGrowthRate = baseGrowthRate + teamGrowthFactor + assetGrowthFactor;
@@ -334,40 +223,75 @@ export default function StartupWars() {
       // Add more checks if needed
 
       if (eventApplicable) {
+        setCurrentEventImpact(null); // Clear previous impact first
+        setAcquisitionOfferAmount(null); // Clear previous offer
+
         if (randomEvent.id === "acquisition") {
-          // Calculate and store offer amount, set event for dialog display
+          // Handle acquisition offer
           const offerMultiplier = 2 + Math.random();
           const offerAmount = Math.floor(calculateValuation(updatedState) * offerMultiplier);
           setAcquisitionOfferAmount(offerAmount);
           setCurrentEvent(randomEvent); // Set event to trigger dialog
           // Don't apply effect or add event message yet
         } else {
-          // Apply effect first for regular events
-          const stateAfterEffect = randomEvent.effect(updatedState);
-          updatedState = stateAfterEffect; // Update the state
-          // Recalculate valuation after event effect
-          updatedState.valuation = calculateValuation(updatedState);
-          setCurrentEvent(randomEvent); // Set event to trigger dialog *after* effect applied
+          // Handle regular event
+          const stateBeforeEffect = { ...updatedState }; // Capture state before
+          const valuationBeforeEffect = calculateValuation(stateBeforeEffect);
+
+          const stateAfterEffect = randomEvent.effect(updatedState); // Apply effect
+          const valuationAfterEffect = calculateValuation(stateAfterEffect); // Calculate valuation AFTER effect
+
+          // Calculate changes
+          const cashChange = stateAfterEffect.cash - stateBeforeEffect.cash;
+          const userChange = stateAfterEffect.users - stateBeforeEffect.users;
+          const valuationChange = valuationAfterEffect - valuationBeforeEffect;
+          const revenuePerUserChange = stateAfterEffect.revenuePerUser - stateBeforeEffect.revenuePerUser;
+
+          // Create impact message
+          let impactParts: string[] = [];
+          if (cashChange !== 0) impactParts.push(`Cash: ${cashChange > 0 ? '+' : ''}${cashChange.toLocaleString()}`);
+          if (userChange !== 0) impactParts.push(`Users: ${userChange > 0 ? '+' : ''}${userChange.toLocaleString()}`);
+          if (revenuePerUserChange !== 0) impactParts.push(`Rev/User: ${revenuePerUserChange > 0 ? '+' : ''}${revenuePerUserChange.toFixed(2)}`);
+          if (valuationChange !== 0) impactParts.push(`Valuation: ${valuationChange > 0 ? '+' : ''}${valuationChange.toLocaleString()}`);
+          const impactMessage = impactParts.length > 0 ? impactParts.join(', ') : "No immediate numerical change.";
+
+
+          // Set state for the dialog
+          setCurrentEvent(randomEvent);
+          setCurrentEventImpact({
+              cashChange,
+              userChange,
+              valuationChange,
+              revenuePerUserChange,
+              message: impactMessage
+          });
+
+          // Update the main game state with the result of the event
+          updatedState = {
+              ...stateAfterEffect,
+              valuation: valuationAfterEffect // Ensure valuation is the updated one
+          };
+
+           // Add the standard event log message (using the event's description for context)
+           updatedState.events = [
+               ...updatedState.events,
+               { day: updatedState.day, type: "info" as GameEvent['type'], message: randomEvent.description }
+           ];
         }
       }
-    }
-    // No else block needed to hide offer card
+    } // End of random event check block
 
-    // Recalculate valuation at the end of the day AFTER potential event effects
-    // but before setting state, unless it was an acquisition offer
-    if (currentEvent?.id !== 'acquisition') {
-       updatedState.valuation = calculateValuation(updatedState);
-    }
+    // Recalculation of valuation outside the event block is removed as it's handled within now.
 
-    setGameState(updatedState) // Update state with daily changes (and event effect if not acquisition)
+    setGameState(updatedState) // Update state with daily changes & event effects
   }
 
-  // Handle hiring team members
-  const hireTeamMember = (memberType: TeamMemberType) => {
+  // Handle hiring team members (Updated to accept specific member)
+  const hireTeamMember = (memberToHire: TeamMember) => {
     if (gameState.gameOver) return;
-    const costs = getHiringCosts();
-    const cost = costs[memberType];
-    const memberName = memberType.charAt(0).toUpperCase() + memberType.slice(1);
+    // const costs = getHiringCosts();
+    const cost = HIRING_COSTS[memberToHire.type]; // Use imported costs
+    const memberName = memberToHire.type.charAt(0).toUpperCase() + memberToHire.type.slice(1);
 
     if (gameState.cash < cost) {
       setGameState((prevState) => ({
@@ -381,10 +305,15 @@ export default function StartupWars() {
     }
 
     setGameState((prevState) => {
+      // Add the specific member to the correct array
+      const teamArrayKey = (memberToHire.type + "s") as keyof TeamMembers;
+      const newTeamArray = [...prevState.team[teamArrayKey], memberToHire];
+
       const newTeam = {
         ...prevState.team,
-        [(memberType + "s") as keyof TeamMembers]: prevState.team[(memberType + "s") as keyof TeamMembers] + 1,
+        [teamArrayKey]: newTeamArray,
       };
+
       const newState = {
         ...prevState,
         cash: prevState.cash - cost,
@@ -392,7 +321,7 @@ export default function StartupWars() {
         valuation: calculateValuation({ ...prevState, team: newTeam }), // Recalculate valuation
         events: [
           ...prevState.events,
-          { day: prevState.day, type: "info" as GameEvent['type'], message: `Hired ${memberName} for $${cost.toLocaleString()}` },
+          { day: prevState.day, type: "info" as GameEvent['type'], message: `Hired ${memberName} (ID: ${memberToHire.id.substring(0, 6)}) for $${cost.toLocaleString()}` }, // Added ID substring for clarity
         ],
       };
       return newState;
@@ -402,9 +331,8 @@ export default function StartupWars() {
   // Handle buying assets (servers, patents)
   const buyAsset = (assetType: AssetType) => {
     if (gameState.gameOver) return;
-    // const prices = getMarketPrices()
-    const prices = getAssetPrices() // Use asset prices
-    const price = prices[assetType]
+    // const prices = getAssetPrices()
+    const price = ASSET_PRICES[assetType]; // Use imported prices
     const assetName = assetType.charAt(0).toUpperCase() + assetType.slice(1)
 
     if (gameState.cash < price) {
@@ -565,22 +493,31 @@ export default function StartupWars() {
       }));
     }
 
-    // Close dialog and clear offer amount - Now handled via onClose passed to EventDialog
+    // Close dialog and clear offer/event state
     setCurrentEvent(null);
     setAcquisitionOfferAmount(null);
+    setCurrentEventImpact(null); // Clear impact state here too
   }
 
   // Reset game
   const resetGame = () => {
     setGameState(INITIAL_STATE)
     setCurrentEvent(null)
+    setCurrentEventImpact(null); // Clear impact on reset too
     setAcquisitionOfferAmount(null);
+  }
+
+  // Need to also clear impact when the dialog is closed via onClose
+  const handleDialogClose = () => {
+      setCurrentEvent(null);
+      setCurrentEventImpact(null);
+      // Note: acquisitionOfferAmount is cleared in handleAcquisitionOffer if decision made
   }
 
   return (
     <div className="container mx-auto py-6 max-w-5xl">
       <div className="flex flex-col space-y-6">
-        <GameHeader title="🚀 Startup Wars" subtitle="Founder Edition" />
+        <GameHeader title="🚀 Startup Wars"/>
 
         <div className="absolute top-6 right-6">
            <ModeToggle />
@@ -603,8 +540,10 @@ export default function StartupWars() {
         {/* Main Game Interface */}
         <MainTabs
             gameState={gameState}
-            getHiringCosts={getHiringCosts} // Pass hiring costs getter
-            getAssetPrices={getAssetPrices} // Pass asset prices getter
+            // getHiringCosts={getHiringCosts} // Pass hiring costs getter - REMOVE
+            // getAssetPrices={getAssetPrices} // Pass asset prices getter - REMOVE
+            hiringCosts={HIRING_COSTS} // Pass imported costs directly
+            assetPrices={ASSET_PRICES} // Pass imported prices directly
             hireTeamMember={hireTeamMember} // Pass hiring function
             buyAsset={buyAsset} // Pass updated asset buying function
             resetGame={resetGame}
@@ -623,9 +562,10 @@ export default function StartupWars() {
         {/* Event Dialog - Replaced inline Dialog */}
         <EventDialog
           currentEvent={currentEvent}
+          eventImpact={currentEventImpact} // Pass impact state
           acquisitionOfferAmount={acquisitionOfferAmount}
           gameStateValuation={gameState.valuation} // Pass valuation
-          onClose={() => setCurrentEvent(null)} // Pass function to close
+          onClose={handleDialogClose} // Pass the consolidated close handler
           onAcquisitionDecision={handleAcquisitionOffer} // Pass handler
         />
 

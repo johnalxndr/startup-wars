@@ -8,8 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { GameState, AssetType, AssetPrices, GrowthAction, RecurringAction } from "@/app/types";
-import { ProductTabProps } from "@/app/types";
+// import { ProductTabProps } from "@/app/types"; // Remove if defined below
 import { Users, Server, Globe, Zap, Repeat, Rss } from 'lucide-react'; // Added Rss for RPU
+
+// Define props for ProductTab
+export interface ProductTabProps {
+  gameState: GameState;
+  buyAsset: (assetType: AssetType) => void;
+  growthActions: GrowthAction[];
+  recurringActions: RecurringAction[];
+  executeGrowthAction: (actionId: string) => void;
+  toggleRecurringAction: (actionId: string) => void;
+  // getAssetPrices: () => AssetPrices; // Remove getter
+  assetPrices: AssetPrices; // Add costs object
+}
 
 export function ProductTab({
   gameState,
@@ -18,9 +30,10 @@ export function ProductTab({
   recurringActions,
   executeGrowthAction,
   toggleRecurringAction,
-  getAssetPrices,
+  // getAssetPrices,
+  assetPrices, // Update destructuring
 }: ProductTabProps) {
-  const assetPrices = getAssetPrices();
+  // const assetPrices = getAssetPrices(); // Remove getter call
   const infrastructureAssets: AssetType[] = ["server", "patent"];
 
   return (

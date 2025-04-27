@@ -59,10 +59,28 @@ export interface RandomEvent {
 
 export type AssetType = "server" | "patent";
 
+// Define attributes for team members
+export interface TeamMemberAttributes {
+  coding: number;
+  design: number;
+  marketing: number;
+  communication: number;
+  problemSolving: number;
+}
+
+// Define an individual team member
+export interface TeamMember {
+  id: string; // Unique identifier for each member
+  type: TeamMemberType;
+  attributes: TeamMemberAttributes;
+  // Could add things like salary, morale later
+}
+
+// Updated TeamMembers to hold arrays of individual members
 export interface TeamMembers {
-  engineers: number;
-  designers: number;
-  marketers: number;
+  engineers: TeamMember[];
+  designers: TeamMember[];
+  marketers: TeamMember[];
 }
 
 export interface Assets {
@@ -88,9 +106,9 @@ export type TeamMemberType = "engineer" | "designer" | "marketer";
 // Removed locations, currentLocation, travelTo?
 export interface MainTabsProps {
   gameState: GameState;
-  getHiringCosts: () => HiringCosts;
-  getAssetPrices: () => AssetPrices;
-  hireTeamMember: (memberType: TeamMemberType) => void;
+  hiringCosts: HiringCosts;
+  assetPrices: AssetPrices;
+  hireTeamMember: (member: TeamMember) => void;
   buyAsset: (assetType: AssetType) => void;
   // travelTo?: (locationId: string) => void; // Keep commented or remove fully
   resetGame: () => void;
@@ -104,8 +122,8 @@ export interface MainTabsProps {
 // Removed currentLocation
 export interface TeamTabProps {
   gameState: GameState;
-  hireTeamMember: (memberType: TeamMemberType) => void;
-  getHiringCosts: () => HiringCosts;
+  hireTeamMember: (member: TeamMember) => void;
+  hiringCosts: HiringCosts;
 }
 
 // Removed currentLocation
@@ -116,7 +134,7 @@ export interface ProductTabProps {
   recurringActions: RecurringAction[];
   executeGrowthAction: (actionId: string) => void;
   toggleRecurringAction: (actionId: string) => void;
-  getAssetPrices: () => AssetPrices;
+  assetPrices: AssetPrices;
 }
 
 // Removed locations, currentLocation, travelTo
@@ -130,4 +148,15 @@ export interface GameActionsCardProps {
 export interface GameStatsProps {
   gameState: GameState;
   calculateBurnRate: () => number;
-} 
+}
+
+// Define the new interface here or ensure it's imported
+export interface EventImpact {
+  cashChange?: number;
+  userChange?: number;
+  valuationChange?: number;
+  revenuePerUserChange?: number;
+  message: string; // A concise message summarizing the impact
+}
+
+// Import new components 

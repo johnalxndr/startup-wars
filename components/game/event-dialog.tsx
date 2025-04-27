@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RandomEvent } from '@/app/types'; // Assuming RandomEvent type is exported from types
+import { RandomEvent, EventImpact } from '@/app/types'; // Assuming RandomEvent type is exported from types
 
 interface EventDialogProps {
   currentEvent: RandomEvent | null;
@@ -16,6 +16,7 @@ interface EventDialogProps {
   gameStateValuation: number;
   onClose: () => void;
   onAcquisitionDecision: (accept: boolean) => void;
+  eventImpact: EventImpact | null; // Correct the type to accept null and the full interface
 }
 
 export function EventDialog({
@@ -24,6 +25,7 @@ export function EventDialog({
   gameStateValuation,
   onClose,
   onAcquisitionDecision,
+  eventImpact,
 }: EventDialogProps) {
   const isOpen = !!currentEvent;
   const isAcquisition = currentEvent?.id === 'acquisition';
@@ -59,6 +61,12 @@ export function EventDialog({
                   ? `A major company wants to buy you out! They are offering $${(acquisitionOfferAmount ?? 0).toLocaleString()}. Your current valuation is $${gameStateValuation.toLocaleString()}.`
                   : currentEvent.description}
               </DialogDescription>
+              {/* Display impact message AFTER description if it exists and not an acquisition */}
+              {!isAcquisition && eventImpact && (
+                <div className="mt-2 text-sm font-semibold text-muted-foreground">
+                   Impact: {eventImpact.message}
+                </div>
+              )}
             </DialogHeader>
             <DialogFooter>
               {isAcquisition ? (
