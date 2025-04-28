@@ -13,29 +13,24 @@ const generateAttributes = (base: Partial<TeamMemberAttributes> = {}): TeamMembe
 
 export const INITIAL_STATE: GameState = {
   month: 1,
-  cash: 50000,
+  cash: 10000,
   valuation: 0,
-  users: 100,
-  mrrPerUser: 6.0,
+  users: 0,
+  mrrPerUser: 10,
   team: {
-    engineers: [
-      {
-        id: uuidv4(),
-        type: 'engineer',
-        attributes: generateAttributes({ coding: 5 }),
-      }
-    ],
+    engineers: [],
     designers: [],
     marketers: [],
     founder: null,
   },
   assets: {
-    servers: 1,
+    infraLevel: 0,
     patents: 0,
   },
   events: [],
   gameOver: false,
   activeRecurringActions: [],
   recurringActionMonthlyCost: 0,
-  playerName: null,
+  playerName: "",
+  isAdvancingMonth: false,
 } 

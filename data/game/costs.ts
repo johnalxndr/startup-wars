@@ -9,6 +9,6 @@ export const TEAM_MEMBER_MONTHLY_COSTS: TeamMemberMonthlyCosts = {
 };
 
 export const ASSET_PRICES: AssetPrices = {
-  server: 5000,
+  infra: [2000, 6000, 12000], // Level 1, 2, 3 upgrades (lowered for balance)
   patent: 25000,
 }; 

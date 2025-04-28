@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/8bit/card";
+import { Progress } from "@/components/ui/8bit/progress";
 import { DollarSign, Rocket, Users } from "lucide-react";
 import { GameState } from "@/app/types";
 import { GameStatsProps } from "@/app/types";
@@ -50,7 +50,7 @@ export function GameStats({ gameState, calculateBurnRate }: GameStatsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{gameState.users.toLocaleString()}</div>
-          <Progress value={Math.min(100, (gameState.users / 10000) * 100)} className="h-2 mt-2" />
+          <p className="text-xs text-muted-foreground">Month {gameState.month}</p>
         </CardContent>
       </Card>
     </div>

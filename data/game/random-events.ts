@@ -7,7 +7,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
     title: "Viral Success!",
     description: "Your app goes viral on TikTok! Users surge by 500%.",
     effect: (state: GameState) => {
-      const newUsers = state.users * 5;
+      const newUsers = Math.max(0, state.users * 5);
       return {
         ...state,
         users: newUsers,
@@ -26,7 +26,7 @@ export const RANDOM_EVENTS: RandomEvent[] = [
       const newUserGrowth = Math.floor(state.users * 0.2);
       return {
         ...state,
-        users: state.users + newUserGrowth,
+        users: Math.max(0, state.users + newUserGrowth),
         events: [
           ...state.events,
           { month: state.month, type: "positive", message: `Press coverage! Users +${newUserGrowth.toLocaleString()} (+20%)` },
@@ -36,14 +36,22 @@ export const RANDOM_EVENTS: RandomEvent[] = [
   },
   {
     id: "outage",
-    title: "Server Outage!",
-    description: "Your servers crashed during peak usage.",
+    // infra-sensitive: probability reduced by infraLevel
+    title: "Infra Outage!",
+    description: "Your infrastructure crashed during peak usage.",
     effect: (state: GameState) => {
-      const userLoss = Math.floor(state.users * 0.3);
+      let userLoss = 0;
+      if (state.assets.infraLevel === 1) {
+        userLoss = Math.floor(state.users * 0.3);
+      } else if (state.assets.infraLevel === 2) {
+        userLoss = Math.floor(state.users * 0.15);
+      } else if (state.assets.infraLevel === 3) {
+        userLoss = Math.floor(state.users * 0.05);
+      }
       return {
         ...state,
         users: Math.max(0, state.users - userLoss),
-        events: [...state.events, { month: state.month, type: "negative", message: `Server outage! Lost ${userLoss.toLocaleString()} users (-30%)` }],
+        events: [...state.events, { month: state.month, type: "negative", message: `Infra outage! Lost ${userLoss.toLocaleString()} users (${state.assets.infraLevel === 1 ? "-30%" : state.assets.infraLevel === 2 ? "-15%" : "-5%"})` }],
       };
     },
   },

@@ -2,14 +2,14 @@
 import React from 'react';
 import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+} from "@/components/ui/8bit/card";
+import { Button } from "@/components/ui/8bit/button";
+import { Badge } from "@/components/ui/8bit/badge";
+import { Switch } from "@/components/ui/8bit/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/8bit/tooltip";
 import { GameState, AssetType, AssetPrices, GrowthAction, RecurringAction } from "@/app/types";
 // import { ProductTabProps } from "@/app/types"; // Remove if defined below
-import { Users, Server, Globe, Zap, Repeat, Rss } from 'lucide-react'; // Added Rss for RPU
+import { Users, Server, Globe, Zap, Repeat, Rss, HardDrive } from 'lucide-react'; // Use HardDrive for Infra
 
 // Define props for ProductTab
 export interface ProductTabProps {
@@ -34,14 +34,14 @@ export function ProductTab({
   assetPrices, // Update destructuring
 }: ProductTabProps) {
   // const assetPrices = getAssetPrices(); // Remove getter call
-  const infrastructureAssets: AssetType[] = ["server", "patent"];
+  const infrastructureAssets: AssetType[] = ["infra", "patent"];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Metrics & Infrastructure Card (Left) */}
-      <Card className="lg:col-span-1">
+      {/* Metrics Card (Left) */}
+      <Card className="lg:col-span-1 overflow-hidden">
         <CardHeader>
-          <CardTitle>Product Metrics & Infra</CardTitle>
+          <CardTitle>Product Metrics</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Users Metric */}
@@ -58,59 +58,84 @@ export function ProductTab({
              </span>
              <span className="text-lg font-semibold">${gameState.mrrPerUser.toFixed(2)}</span>
           </div>
-          {/* Servers Metric */}
+          {/* Infra Metric */}
           <div className="flex items-center justify-between p-3 border rounded-lg">
              <span className="flex items-center font-medium">
-               <Server className="w-5 h-5 mr-2 text-gray-500" /> Servers
+               <HardDrive className="w-5 h-5 mr-2 text-gray-500" /> Infrastructure
              </span>
-             <span className="text-lg font-semibold">{gameState.assets.servers}</span>
+             <span className="text-lg font-semibold">Level {gameState.assets.infraLevel}</span>
           </div>
-           {/* Patents Metric */}
+          {/* Patents Metric */}
           <div className="flex items-center justify-between p-3 border rounded-lg">
              <span className="flex items-center font-medium">
                <Globe className="w-5 h-5 mr-2 text-indigo-500" /> Patents
              </span>
              <span className="text-lg font-semibold">{gameState.assets.patents}</span>
           </div>
-          
-          {/* Buy Infrastructure Buttons */}
-          <div className="pt-4 space-y-3">
-             {infrastructureAssets.map((assetType) => {
-                const price = assetPrices[assetType];
-                const assetName = assetType.charAt(0).toUpperCase() + assetType.slice(1);
-                const canAfford = gameState.cash >= price;
-                const icon = assetType === 'server' ? <Server className="w-4 h-4 mr-2" /> : <Globe className="w-4 h-4 mr-2" />;
-                return (
-                  <TooltipProvider key={assetType}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between"
-                          onClick={() => buyAsset(assetType)}
-                          disabled={gameState.gameOver || !canAfford}
-                        >
-                          <span className="flex items-center">
-                            {icon} Buy {assetName}
-                          </span>
-                          <Badge variant={canAfford ? "secondary" : "destructive"}>${price.toLocaleString()}</Badge>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {!canAfford && <p className="text-red-600">Cannot afford!</p>}
-                        <p>Acquire {assetName}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-             })}
-          </div>
+        </CardContent>
+      </Card>
 
+      {/* Purchases & Upgrades Card (Middle, full width on mobile) */}
+      <Card className="lg:col-span-1 overflow-hidden">
+        <CardHeader>
+          <CardTitle>Upgrades & Purchases</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 w-full">
+            {/* Upgrade Infrastructure Button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex justify-between items-center px-4 py-3 text-base font-medium rounded-lg"
+                    onClick={() => buyAsset("infra")}
+                    disabled={gameState.gameOver || gameState.assets.infraLevel >= 3 || gameState.cash < assetPrices.infra[gameState.assets.infraLevel]}
+                  >
+                    <span className="flex items-center">
+                      <HardDrive className="w-4 h-4 mr-2" /> Upgrade Infrastructure
+                    </span>
+                    <Badge className="ml-2 px-3 py-1 text-base font-mono" variant={gameState.cash >= assetPrices.infra[gameState.assets.infraLevel] ? "secondary" : "destructive"}>
+                      {assetPrices.infra[gameState.assets.infraLevel]?.toLocaleString() || "Max"}
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {gameState.assets.infraLevel >= 3 ? <p>Max level reached</p> : <p>Upgrade to level {gameState.assets.infraLevel + 1}</p>}
+                  {gameState.cash < assetPrices.infra[gameState.assets.infraLevel] && gameState.assets.infraLevel < 3 && <p className="text-red-600">Cannot afford!</p>}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {/* Patent Button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full flex justify-between items-center px-4 py-3 text-base font-medium rounded-lg"
+                    onClick={() => buyAsset("patent")}
+                    disabled={gameState.gameOver || gameState.cash < assetPrices.patent}
+                  >
+                    <span className="flex items-center">
+                      <Globe className="w-4 h-4 mr-2" /> Buy Patent
+                    </span>
+                    <Badge className="ml-2 px-3 py-1 text-base font-mono" variant={gameState.cash >= assetPrices.patent ? "secondary" : "destructive"}>
+                      {assetPrices.patent.toLocaleString()}
+                    </Badge>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {gameState.cash < assetPrices.patent && <p className="text-red-600">Cannot afford!</p>}
+                  <p>Acquire Patent</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </CardContent>
       </Card>
 
       {/* Growth Actions Card (Right) */}
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-1 overflow-hidden">
         <CardHeader>
           <CardTitle>Growth Actions</CardTitle>
         </CardHeader>
@@ -126,7 +151,7 @@ export function ProductTab({
                           <TooltipTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="justify-between"
+                                className="justify-between w-full px-4 py-3 text-base font-medium rounded-lg"
                                 onClick={() => executeGrowthAction(action.id)}
                                 disabled={gameState.gameOver || !canAfford}
                               >
@@ -134,7 +159,7 @@ export function ProductTab({
                                   <Zap className="w-4 h-4 mr-2 flex-shrink-0" />
                                   {action.name}
                                 </span>
-                                <Badge variant={canAfford ? "secondary" : "destructive"}>${action.cost.toLocaleString()}</Badge>
+                                <Badge className="ml-2 px-3 py-1 text-base font-mono" variant={canAfford ? "secondary" : "destructive"}>${action.cost.toLocaleString()}</Badge>
                               </Button>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -161,7 +186,7 @@ export function ProductTab({
                       <Tooltip>
                         <TooltipTrigger asChild>
                             <div
-                              className={`flex items-center justify-between p-3 border rounded-md ${ isDisabled ? 'opacity-50 cursor-not-allowed' : '' }`}
+                              className={`flex items-center justify-between p-3 border rounded-md w-full ${ isDisabled ? 'opacity-50 cursor-not-allowed' : '' }`}
                               // Add onClick to the div IF it's not disabled, to allow toggling by clicking the row
                               onClick={!isDisabled ? () => toggleRecurringAction(action.id) : undefined} style={{ cursor: isDisabled ? 'not-allowed' : 'pointer' }}
                             >

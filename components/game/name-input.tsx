@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/8bit/button";
+import { Input } from "@/components/ui/8bit/input";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/8bit/card";
+import { Label } from "@/components/ui/8bit/label";
 
 interface NameInputProps {
   onSubmitName: (name: string) => void;
@@ -24,12 +24,11 @@ export const NameInput: React.FC<NameInputProps> = ({ onSubmitName }) => {
         <form onSubmit={handleSubmit}>
           <CardHeader className="text-center">
             <CardTitle>Enter Your Name</CardTitle>
-            <CardDescription>What should we call the founder?</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4 pt-4">
             <div className="grid w-full items-center gap-4">
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="name">Founder Name</Label>
+                <Label htmlFor="name" className="text-sm text-muted-foreground">Founder Name</Label>
                 <Input
                   id="name"
                   value={name}
@@ -40,7 +39,7 @@ export const NameInput: React.FC<NameInputProps> = ({ onSubmitName }) => {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end">
+          <CardFooter className="pt-4 flex justify-end">
             <Button type="submit" disabled={!name.trim()}>Next</Button>
           </CardFooter>
         </form>

@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   Card, CardContent, CardFooter, CardHeader, CardTitle
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/8bit/card";
+import { Button } from "@/components/ui/8bit/button";
 import { GameState } from "@/app/types"; // Moved types to a separate file
 
 interface GameOverScreenProps {
@@ -33,7 +33,7 @@ export function GameOverScreen({ gameState, resetGame }: GameOverScreenProps) {
             <span className="font-medium">Users:</span> {gameState.users.toLocaleString()}
           </p>
           <p>
-            <span className="font-medium">Days Survived:</span> {gameState.day}
+            <span className="font-medium">Months Survived:</span> {gameState.month}
           </p>
         </div>
       </CardContent>

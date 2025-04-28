@@ -1,14 +1,12 @@
 // Placeholder for TeamTab component
 import React, { useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating unique IDs
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Import Tabs components
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/8bit/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/8bit/tabs" // Import Tabs components
 import { GameState, TeamMemberType, TeamMemberMonthlyCosts, TeamMember, TeamMemberAttributes } from "@/app/types"; // Updated type name
 import { Users, UserPlus, Wrench, Palette, Megaphone } from 'lucide-react'; // Added specific icons
 import { TeamMemberCard } from "../team-member-card"; // Import the new card
+import { attributeRanges, generateAttributes, randomStatInRange } from "@/data/game/attributes";
 
 // Props for TeamTab
 export interface TeamTabProps {
@@ -16,40 +14,6 @@ export interface TeamTabProps {
   hireTeamMember: (member: TeamMember) => void;
   hiringCosts: TeamMemberMonthlyCosts; // Updated type name (though unused for display now)
 }
-
-// Helper to generate random attributes within a specific range
-const randomStatInRange = (min: number, max: number): number => {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-};
-
-// Define attribute ranges for roles
-const attributeRanges: Record<Exclude<TeamMemberType, 'founder'>, { [key in keyof TeamMemberAttributes]: { min: number, max: number } }> = {
-    engineer: {
-        coding: { min: 6, max: 9 },
-        design: { min: 1, max: 4 },
-        marketing: { min: 1, max: 3 },
-    },
-    designer: {
-        design: { min: 6, max: 9 },
-        coding: { min: 2, max: 5 },
-        marketing: { min: 1, max: 4 },
-    },
-    marketer: {
-        marketing: { min: 6, max: 9 },
-        design: { min: 1, max: 4 },
-        coding: { min: 1, max: 3 },
-    }
-};
-
-// Updated generateAttributes to use ranges if provided, otherwise fallback
-const generateAttributes = (type: Exclude<TeamMemberType, 'founder'>): TeamMemberAttributes => {
-    const ranges = attributeRanges[type];
-    return {
-        coding: randomStatInRange(ranges.coding.min, ranges.coding.max),
-        design: randomStatInRange(ranges.design.min, ranges.design.max),
-        marketing: randomStatInRange(ranges.marketing.min, ranges.marketing.max),
-    };
-};
 
 // Map types to icons and titles for cleaner code
 const typeDetails: Record<Exclude<TeamMemberType, 'founder'>, { title: string, icon: React.ElementType }> = {
@@ -77,7 +41,9 @@ export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps
     return generated;
   }, [gameState.month]); // Correct dependency: Regenerate candidates each month
 
+  // Include founder in the current team list if they exist
   const currentTeamMembers = [
+      ...(gameState.team.founder ? [gameState.team.founder] : []),
       ...gameState.team.engineers,
       ...gameState.team.designers,
       ...gameState.team.marketers,
@@ -98,7 +64,12 @@ export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {currentTeamMembers.map((member) => (
-                    <TeamMemberCard key={member.id} member={member} />
+                    <TeamMemberCard
+                        key={member.id}
+                        member={member}
+                        // Pass player name only if it's the founder, providing fallback for null
+                        playerName={member.type === 'founder' ? (gameState.playerName ?? "Founder") : undefined}
+                    />
                 ))}
             </div>
           )}
@@ -116,10 +87,9 @@ export function TeamTab({ gameState, hireTeamMember, hiringCosts }: TeamTabProps
                  <TabsList className="grid w-full grid-cols-3 mb-4"> {/* Tabs occupy full width */} 
                      {teamMemberTypes.map((memberType) => { // memberType is Exclude<...>
                          const details = typeDetails[memberType]; // Indexing is correct
-                         const Icon = details.icon;
                          return (
                             <TabsTrigger key={memberType} value={memberType}>
-                                <Icon className="w-4 h-4 mr-1.5"/> {details.title}
+                                {details.title}
                             </TabsTrigger>
                          );
                      })}

@@ -9,7 +9,7 @@ export interface GameAssets {
   engineers: number
   designers: number
   marketers: number
-  servers: number
+  infraLevel: number // 1-3, replaces servers
   patents: number
 }
 
@@ -49,6 +49,7 @@ export interface GameState {
   activeRecurringActions: string[]; // IDs of active recurring actions
   recurringActionMonthlyCost: number; // Total monthly cost from recurring actions
   playerName: string | null; // Added player name
+  isAdvancingMonth: boolean; // Add this new field
 }
 
 export interface RandomEvent {
@@ -58,7 +59,7 @@ export interface RandomEvent {
   effect: (state: GameState) => GameState
 }
 
-export type AssetType = "server" | "patent";
+export type AssetType = "infra" | "patent";
 
 // Define attributes for team members
 export interface TeamMemberAttributes {
@@ -84,7 +85,7 @@ export interface TeamMembers {
 }
 
 export interface Assets {
-  servers: number;
+  infraLevel: number;
   patents: number;
 }
 
@@ -96,7 +97,7 @@ export interface TeamMemberMonthlyCosts {
 }
 
 export interface AssetPrices {
-  server: number;
+  infra: number[]; // Array for each upgrade level, e.g. [5000, 15000, 30000]
   patent: number;
 }
 

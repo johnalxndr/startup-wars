@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating unique IDs
+import { useRouter } from "next/navigation";
 
 import { ModeToggle } from "@/components/theme-toggle"
 import {
@@ -24,7 +25,6 @@ import {
 // Import new components
 import { GameHeader } from "@/components/game/game-header";
 import { GameStats } from "@/components/game/game-stats"; // Will receive updated GameState
-import { GameOverScreen } from "@/components/game/game-over-screen"; // Will receive updated GameState
 import { MainTabs } from "@/components/game/main-tabs"; // Will receive updated GameState and RecurringAction
 import { Button } from "@/components/ui/button";
 import { EventDialog } from '@/components/game/event-dialog'; // Will receive updated GameState
@@ -38,6 +38,9 @@ import { TEAM_MEMBER_MONTHLY_COSTS, ASSET_PRICES } from "@/data/game/costs"; // 
 import { StartScreen } from '@/components/game/start-screen';
 import { NameInput } from '@/components/game/name-input';
 import { AttributeAllocator } from '@/components/game/attribute-allocator';
+
+// Constants
+const SETTINGS_KEY = "startupWarsSettings"; // Key for localStorage settings
 
 // Game constants
 
@@ -55,6 +58,8 @@ type SetupStep = "start" | "name" | "attributes" | "complete"; // Define setup s
 
 // Costs moved to data/game/costs.ts
 
+import { calculateValuation, calculateBurnRate } from "@/lib/gameCalculations";
+
 export default function StartupWars() {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE)
   const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null)
@@ -62,6 +67,7 @@ export default function StartupWars() {
   const [acquisitionOfferAmount, setAcquisitionOfferAmount] = useState<number | null>(null);
   const [setupStep, setSetupStep] = useState<SetupStep>("start"); // New state for setup flow
   const [playerAttributes, setPlayerAttributes] = useState<TeamMemberAttributes | null>(null); // State for player attributes during setup
+  const router = useRouter();
 
   // Handler to move from Start to Name input
   const handleStartGame = () => {
@@ -96,159 +102,267 @@ export default function StartupWars() {
     setSetupStep("complete"); // Mark setup as complete
   };
 
-  // Calculate monthly burn rate
-  const calculateBurnRate = (state: GameState = gameState) => { // Allow passing state for calculation
-    // Assuming these costs are per month now
-    const founderBurn = state.team.founder ? 1500 : 0; // Founder monthly cost (Keep this separate or add to costs.ts? For now, separate)
-    // Use TEAM_MEMBER_MONTHLY_COSTS
-    const teamBurn = (
-        state.team.engineers.length * TEAM_MEMBER_MONTHLY_COSTS.engineer +
-        state.team.designers.length * TEAM_MEMBER_MONTHLY_COSTS.designer +
-        state.team.marketers.length * TEAM_MEMBER_MONTHLY_COSTS.marketer
-    );
-    const assetBurn = state.assets.servers * 200; // Server monthly cost (Consider moving to costs.ts as well)
-    const userBurn = state.users * 0.05; // Per-user monthly cost
-    // Include recurring action monthly costs
-    return founderBurn + teamBurn + assetBurn + userBurn + state.recurringActionMonthlyCost; // Use monthly cost field
-  }
-
-  // Calculate company valuation (Unaffected by timescale)
-  const calculateValuation = (state: GameState = gameState) => {
-    const userValue = state.users * 10
-    const founderValue = state.team.founder ? 25000 : 0;
-    const teamValue = (
-        state.team.engineers.length * 20000 +
-        state.team.designers.length * 15000 +
-        state.team.marketers.length * 12000
-    );
-    const assetValue = (
-        state.assets.servers * 8000 +
-        state.assets.patents * 50000
-    );
-    const growthBonus = state.activeRecurringActions.length * 5000;
-    return userValue + founderValue + teamValue + assetValue + growthBonus;
-  }
-
   // Handle next month action
-  const nextMonth = () => {
+  const nextMonth = async () => {
     if (gameState.gameOver) return
 
-    const burnRate = calculateBurnRate(gameState)
-    const monthlyRevenue = gameState.users * gameState.mrrPerUser // Use MRR per user
-    let newCash = gameState.cash - burnRate + monthlyRevenue
+    // Set loading state first
+    setGameState(prevState => ({
+      ...prevState,
+      isAdvancingMonth: true
+    }));
 
-    if (newCash <= 0) {
-      setGameState({
-        ...gameState,
-        cash: 0,
-        gameOver: true,
-        events: [...gameState.events, { month: gameState.month, type: "negative", message: "OUT OF CASH! GAME OVER" }], // Use month
-      })
-      return
-    }
+    try {
+      // Create a delay promise for minimum loading time (2 seconds)
+      const minDelay = () => new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Organic user growth calculation (Interpret factors as monthly)
-    const teamGrowthFactor = gameState.team.engineers.length * 0.05 + gameState.team.marketers.length * 0.1;
-    const assetGrowthFactor = gameState.assets.servers * 0.02;
-    const baseGrowthRate = 1; // Base rate (no decline/growth)
-    const totalGrowthRate = baseGrowthRate + teamGrowthFactor + assetGrowthFactor;
-    let newUsers = Math.floor(gameState.users * totalGrowthRate) // Apply monthly growth rate
+      // Define triggerRandomEvent function
+      const triggerRandomEvent = async (currentState: GameState): Promise<GameState> => {
+        let finalState = currentState;
+        let eventToShow: RandomEvent | null = null;
+        let impactToShow: EventImpact | null = null;
+        let offerToShow: number | null = null;
 
-    // Growth from recurring actions
-    let recurringUserGrowth = 0;
-    let recurringEvents: GameEvent[] = [];
-    gameState.activeRecurringActions.forEach(actionId => {
-        const action = RECURRING_ACTIONS.find(a => a.id === actionId);
-        if (action) {
-            const monthlyEffect = action.monthlyEffect(gameState); // Use monthlyEffect
-            recurringUserGrowth += monthlyEffect.userIncrease;
-            recurringEvents.push({
-                month: gameState.month + 1, // Use next month
-                type: "info",
-                message: `${action.name} added ${monthlyEffect.userIncrease.toLocaleString()} users this month.`
-            });
-        }
-    });
-    newUsers += recurringUserGrowth;
-
-    const newValuation = calculateValuation({ ...gameState, users: newUsers });
-
-    let updatedState: GameState = {
-      ...gameState,
-      month: gameState.month + 1, // Increment month
-      cash: newCash,
-      valuation: newValuation,
-      users: newUsers,
-      events: [...gameState.events, ...recurringEvents],
-    }
-
-    // Check for random event AFTER monthly updates
-    if (Math.random() < 0.2) { // Keep event trigger chance (per month now)
-      const randomEvent = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)]
-
-      let eventApplicable = true;
-      if (randomEvent.id === 'outage' && updatedState.assets.servers === 0) {
-          eventApplicable = false;
-      }
-      // Add more checks if needed
-
-      if (eventApplicable) {
-        setCurrentEventImpact(null); // Clear previous impact first
-        setAcquisitionOfferAmount(null); // Clear previous offer
-
-        if (randomEvent.id === "acquisition") {
-          // Handle acquisition offer
-          const offerMultiplier = 2 + Math.random();
-          const offerAmount = Math.floor(calculateValuation(updatedState) * offerMultiplier);
-          setAcquisitionOfferAmount(offerAmount);
-          setCurrentEvent(randomEvent); // Set event to trigger dialog
-          // Don't apply effect or add event message yet
-        } else {
-          // Handle regular event
-          const stateBeforeEffect = { ...updatedState }; // Capture state before
+        const applyStandardEvent = (event: RandomEvent, stateToApply: GameState): GameState => {
+          const stateBeforeEffect = { ...stateToApply };
           const valuationBeforeEffect = calculateValuation(stateBeforeEffect);
+          const stateAfterEffect = event.effect(stateToApply);
+          const valuationAfterEffect = calculateValuation(stateAfterEffect);
 
-          const stateAfterEffect = randomEvent.effect(updatedState); // Apply effect
-          const valuationAfterEffect = calculateValuation(stateAfterEffect); // Calculate valuation AFTER effect
-
-          // Calculate changes
           const cashChange = stateAfterEffect.cash - stateBeforeEffect.cash;
           const userChange = stateAfterEffect.users - stateBeforeEffect.users;
           const valuationChange = valuationAfterEffect - valuationBeforeEffect;
-          const mrrPerUserChange = stateAfterEffect.mrrPerUser - stateBeforeEffect.mrrPerUser; // Use mrrPerUser
+          const mrrPerUserChange = stateAfterEffect.mrrPerUser - stateBeforeEffect.mrrPerUser;
 
-          // Create impact message
           let impactParts: string[] = [];
           if (cashChange !== 0) impactParts.push(`Cash: ${cashChange > 0 ? '+' : ''}${cashChange.toLocaleString()}`);
           if (userChange !== 0) impactParts.push(`Users: ${userChange > 0 ? '+' : ''}${userChange.toLocaleString()}`);
-          if (mrrPerUserChange !== 0) impactParts.push(`MRR/User: ${mrrPerUserChange > 0 ? '+' : ''}${mrrPerUserChange.toFixed(2)}`); // Use MRR/User
+          if (mrrPerUserChange !== 0) impactParts.push(`MRR/User: ${mrrPerUserChange > 0 ? '+' : ''}${mrrPerUserChange.toFixed(2)}`);
           if (valuationChange !== 0) impactParts.push(`Valuation: ${valuationChange > 0 ? '+' : ''}${valuationChange.toLocaleString()}`);
           const impactMessage = impactParts.length > 0 ? impactParts.join(', ') : "No immediate numerical change.";
 
+          impactToShow = { cashChange, userChange, valuationChange, mrrPerUserChange, message: impactMessage };
+          return { ...stateAfterEffect, valuation: valuationAfterEffect };
+        };
 
-          // Set state for the dialog
-          setCurrentEvent(randomEvent);
-          setCurrentEventImpact({
-              cashChange,
-              userChange,
-              valuationChange,
-              mrrPerUserChange, // Use mrrPerUserChange
-              message: impactMessage
-          });
+        try {
+          const settingsString = localStorage.getItem(SETTINGS_KEY);
+          const settings = settingsString ? JSON.parse(settingsString) : { aiEventsEnabled: false };
 
-          // Update the main game state with the result of the event
-          // Event effects already add their own message to stateAfterEffect.events
-          updatedState = {
-              ...stateAfterEffect,
-              valuation: valuationAfterEffect // Ensure valuation is the updated one
+          if (settings.aiEventsEnabled) {
+            console.log("Attempting to generate AI event...");
+            try {
+              const response = await fetch('/api/generate-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameState: currentState }),
+              });
+
+              if (!response.ok) {
+                throw new Error(`API error: ${response.statusText}`);
+              }
+
+              const data = await response.json();
+              if (data.error) {
+                throw new Error(`API returned error: ${data.error} ${data.details || ''}`);
+              }
+
+              const aiEvent: RandomEvent = data.event;
+              const aiImpact: EventImpact = data.impact;
+
+              console.log("AI Event received:", aiEvent);
+
+              const stateAfterAiEffect = { ...currentState };
+              if (aiImpact.cashChange) stateAfterAiEffect.cash += aiImpact.cashChange;
+              if (aiImpact.userChange) stateAfterAiEffect.users += aiImpact.userChange;
+              if (aiImpact.mrrPerUserChange) stateAfterAiEffect.mrrPerUser += aiImpact.mrrPerUserChange;
+              const valuationAfterAiEffect = calculateValuation(stateAfterAiEffect);
+
+              stateAfterAiEffect.events = [
+                ...stateAfterAiEffect.events,
+                { month: stateAfterAiEffect.month, type: "info", message: `${aiEvent.title}: ${aiImpact.message}` }
+              ];
+
+              finalState = { ...stateAfterAiEffect, valuation: valuationAfterAiEffect };
+              eventToShow = aiEvent;
+              impactToShow = aiImpact;
+
+            } catch (aiError) {
+              console.error("Failed to generate or apply AI event, falling back:", aiError);
+              const infraSensitiveEvents = ['outage'];
+              const outageWeights = [1, 0.7, 0.4, 0.1]; // Level 0-3
+
+              // Filter and weight events
+              const weightedEvents = RANDOM_EVENTS.flatMap(event => {
+                if (infraSensitiveEvents.includes(event.id)) {
+                  // Outage: reduce chance based on infraLevel
+                  const weight = outageWeights[currentState.assets.infraLevel] || 0.1;
+                  // If weight is 0, event is impossible
+                  if (weight <= 0) return [];
+                  // Add event multiple times for weighting
+                  return Array(Math.round(weight * 10)).fill(event);
+                }
+                // All other events normal weight
+                return [event];
+              });
+              // Pick a random event from weightedEvents
+              const randomEvent = weightedEvents[Math.floor(Math.random() * weightedEvents.length)];
+              const hasTeamMembers = currentState.team.engineers.length > 0 || currentState.team.designers.length > 0 || currentState.team.marketers.length > 0;
+              if (randomEvent.id !== 'acquisition' && !(randomEvent.id === 'member_quits' && !hasTeamMembers) && !(randomEvent.id === 'outage' && currentState.assets.infraLevel === 0)) {
+                finalState = applyStandardEvent(randomEvent, currentState);
+                eventToShow = randomEvent;
+              }
+            }
+          } else {
+            const infraSensitiveEvents = ['outage'];
+            const outageWeights = [1, 0.7, 0.4, 0.1]; // Level 0-3
+
+            // Filter and weight events
+            const weightedEvents = RANDOM_EVENTS.flatMap(event => {
+              if (infraSensitiveEvents.includes(event.id)) {
+                // Outage: reduce chance based on infraLevel
+                const weight = outageWeights[currentState.assets.infraLevel] || 0.1;
+                // If weight is 0, event is impossible
+                if (weight <= 0) return [];
+                // Add event multiple times for weighting
+                return Array(Math.round(weight * 10)).fill(event);
+              }
+              // All other events normal weight
+              return [event];
+            });
+            // Pick a random event from weightedEvents
+            const randomEvent = weightedEvents[Math.floor(Math.random() * weightedEvents.length)];
+            let eventApplicable = true;
+            if (randomEvent.id === 'member_quits') {
+              const hasTeamMembers = currentState.team.engineers.length > 0 || currentState.team.designers.length > 0 || currentState.team.marketers.length > 0;
+              if (!hasTeamMembers) eventApplicable = false;
+            }
+            if (randomEvent.id === 'outage' && currentState.assets.infraLevel === 0) {
+              eventApplicable = false;
+            }
+
+            if (eventApplicable) {
+              if (randomEvent.id === "acquisition") {
+                const offerMultiplier = 2 + Math.random();
+                offerToShow = Math.floor(calculateValuation(currentState) * offerMultiplier);
+                eventToShow = randomEvent;
+              } else {
+                finalState = applyStandardEvent(randomEvent, currentState);
+                eventToShow = randomEvent;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error processing random event:", error);
+        }
+
+        setCurrentEventImpact(impactToShow);
+        setAcquisitionOfferAmount(offerToShow);
+        setCurrentEvent(eventToShow);
+
+        return finalState;
+      };
+
+      // Calculate all state updates
+      const calculateStateUpdates = async () => {
+        const burnRate = calculateBurnRate(gameState, TEAM_MEMBER_MONTHLY_COSTS)
+        const monthlyRevenue = gameState.users * gameState.mrrPerUser
+        let newCash = gameState.cash - burnRate + monthlyRevenue
+
+        if (newCash <= 0) {
+          const finalState = {
+            ...gameState,
+            cash: 0,
+            gameOver: true,
+            isAdvancingMonth: false,
+            events: [...gameState.events, { month: gameState.month, type: "negative" as const, message: "OUT OF CASH! GAME OVER" }],
           };
+          setGameState(finalState);
+          // Store final state for /game-over route
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("startupWarsFinalState", JSON.stringify(finalState));
+          }
+          router.push("/game-over");
+          return null;
+        }
 
-           // Event log message is added within the event effect itself now
+        const teamGrowthFactor = gameState.team.engineers.length * 0.05 + gameState.team.marketers.length * 0.1;
+        const assetGrowthFactor = gameState.assets.infraLevel * 0.05;
+        const baseGrowthRate = 1;
+        const totalGrowthRate = baseGrowthRate + teamGrowthFactor + assetGrowthFactor;
+        let newUsers = Math.floor(gameState.users * totalGrowthRate);
+        // Ensure at least 5 new users per month, even if users is 0
+        newUsers = Math.max(newUsers, 5);
+
+        let recurringUserGrowth = 0;
+        let recurringEvents: GameEvent[] = [];
+        gameState.activeRecurringActions.forEach(actionId => {
+          const action = RECURRING_ACTIONS.find(a => a.id === actionId);
+          if (action) {
+            const monthlyEffect = action.monthlyEffect(gameState);
+            recurringUserGrowth += monthlyEffect.userIncrease;
+            recurringEvents.push({
+              month: gameState.month + 1,
+              type: "info",
+              message: `${action.name} added ${monthlyEffect.userIncrease.toLocaleString()} users this month.`
+            });
+          }
+        });
+        newUsers += recurringUserGrowth;
+
+        const newValuation = calculateValuation({ ...gameState, users: newUsers });
+
+        let updatedState: GameState = {
+          ...gameState,
+          month: gameState.month + 1,
+          cash: newCash,
+          valuation: newValuation,
+          users: newUsers,
+          events: [...gameState.events, ...recurringEvents],
+        }
+
+        // Check for random event (25% chance)
+        if (Math.random() < 0.25) {
+          updatedState = await triggerRandomEvent(updatedState);
+        } else {
+          // Clear any previous event state
+          setCurrentEvent(null);
+          setCurrentEventImpact(null);
+          setAcquisitionOfferAmount(null);
+        }
+
+        return updatedState;
+      };
+
+      // Wait for both the minimum delay AND state calculations to complete
+      const [_, updatedState] = await Promise.all([
+        minDelay(),
+        calculateStateUpdates()
+      ]);
+
+      // Only update the game state if we have a valid state update
+      if (updatedState) {
+        setGameState({
+          ...updatedState,
+          isAdvancingMonth: false
+        });
+        if (updatedState.gameOver) {
+          // Store final state for /game-over route
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("startupWarsFinalState", JSON.stringify(updatedState));
+          }
+          router.push("/game-over");
         }
       }
-    } // End of random event check block
 
-    setGameState(updatedState) // Update state with monthly changes & event effects
+    } catch (error) {
+      console.error("Error during month advancement:", error)
+      setGameState(prevState => ({
+        ...prevState,
+        isAdvancingMonth: false,
+        events: [...prevState.events, { month: prevState.month, type: "negative", message: "Error advancing month" }]
+      }))
+    }
   }
 
   // Handle hiring team members
@@ -313,37 +427,68 @@ export default function StartupWars() {
   // Handle buying assets (servers, patents)
   const buyAsset = (assetType: AssetType) => {
     if (gameState.gameOver) return;
+    if (assetType === "infra") {
+      const currentLevel = gameState.assets.infraLevel;
+      if (currentLevel >= 3) return; // Max level
+      const price = ASSET_PRICES.infra[currentLevel];
+      if (gameState.cash < price) {
+        setGameState((prevState) => ({
+          ...prevState,
+          events: [
+            ...prevState.events,
+            { month: prevState.month, type: "negative", message: `Not enough cash to upgrade Infrastructure!` },
+          ],
+        }));
+        return;
+      }
+      setGameState((prevState) => {
+        const newLevel = prevState.assets.infraLevel + 1;
+        const newAssets = {
+          ...prevState.assets,
+          infraLevel: newLevel,
+        };
+        return {
+          ...prevState,
+          cash: prevState.cash - price,
+          assets: newAssets,
+          valuation: calculateValuation({ ...prevState, assets: newAssets }),
+          events: [
+            ...prevState.events,
+            { month: prevState.month, type: "info", message: `Upgraded Infrastructure to Level ${newLevel} for $${price.toLocaleString()}` },
+          ],
+        };
+      });
+      return;
+    }
+    // Patent logic unchanged
     const price = ASSET_PRICES[assetType];
-    const assetName = assetType.charAt(0).toUpperCase() + assetType.slice(1)
-
+    const assetName = assetType.charAt(0).toUpperCase() + assetType.slice(1);
     if (gameState.cash < price) {
       setGameState((prevState) => ({
         ...prevState,
         events: [
           ...prevState.events,
-          { month: prevState.month, type: "negative", message: `Not enough cash to acquire ${assetName}!` }, // Use month
+          { month: prevState.month, type: "negative", message: `Not enough cash to acquire ${assetName}!` },
         ],
-      }))
-      return
+      }));
+      return;
     }
-
     setGameState((prevState) => {
-       const newAssets = {
-         ...prevState.assets,
-         [(assetType + "s") as keyof Assets]: prevState.assets[(assetType + "s") as keyof Assets] + 1,
-       };
-       const newState = {
-            ...prevState,
-            cash: prevState.cash - price,
-            assets: newAssets,
-            valuation: calculateValuation({...prevState, assets: newAssets }),
-            events: [
-                ...prevState.events,
-                { month: prevState.month, type: "info" as GameEvent['type'], message: `Acquired ${assetName} for $${price.toLocaleString()}` }, // Use month
-            ],
-       };
-       return newState;
-    })
+      const newAssets = {
+        ...prevState.assets,
+        patents: prevState.assets.patents + 1,
+      };
+      return {
+        ...prevState,
+        cash: prevState.cash - price,
+        assets: newAssets,
+        valuation: calculateValuation({ ...prevState, assets: newAssets }),
+        events: [
+          ...prevState.events,
+          { month: prevState.month, type: "info", message: `Acquired ${assetName} for $${price.toLocaleString()}` },
+        ],
+      };
+    });
   }
 
   // Handle executing a one-time Growth Action
@@ -453,12 +598,17 @@ export default function StartupWars() {
           type: "positive" as GameEvent['type'],
           message: `ACQUIRED! Sold for $${offerAmount.toLocaleString()} (Valuation: $${gameState.valuation.toLocaleString()})`,
       });
-      setGameState((prevState) => ({
-        ...prevState,
-        cash: prevState.cash + offerAmount,
+      const finalState = {
+        ...gameState,
+        cash: gameState.cash + offerAmount,
         gameOver: true,
         events: finalEvents,
-      }));
+      };
+      setGameState(finalState);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("startupWarsFinalState", JSON.stringify(finalState));
+      }
+      router.push("/game-over");
     } else {
       finalEvents.push({
           month: gameState.month, // Use month
@@ -493,7 +643,7 @@ export default function StartupWars() {
   }
 
   return (
-    <div className="container mx-auto py-6 max-w-5xl">
+    <div className="container mx-auto py-6">
       {/* Conditional Rendering based on setupStep */}
       {setupStep === "start" && (
         <StartScreen onStartGame={handleStartGame} />
@@ -520,14 +670,25 @@ export default function StartupWars() {
             {/* GameStats component now receives state with month, mrrPerUser etc. */}
             <GameStats
               gameState={gameState}
-              calculateBurnRate={() => calculateBurnRate(gameState)}
+              calculateBurnRate={() => calculateBurnRate(gameState, TEAM_MEMBER_MONTHLY_COSTS)}
             />
 
             {/* Next Month Button */}
             {!gameState.gameOver && (
               <div className="flex justify-end mt-4">
-                <Button onClick={nextMonth} size="lg"> {/* Changed onClick to nextMonth */}
-                  Next Month ({gameState.month}) {/* Changed text to Next Month */}
+                <Button 
+                  onClick={nextMonth} 
+                  size="lg"
+                  disabled={gameState.isAdvancingMonth}
+                >
+                  {gameState.isAdvancingMonth ? (
+                    <>
+                      <span className="animate-spin mr-2">⏳</span>
+                      Advancing...
+                    </>
+                  ) : (
+                    `Next Month (${gameState.month})`
+                  )}
                 </Button>
               </div>
             )}
@@ -544,13 +705,8 @@ export default function StartupWars() {
               recurringActions={RECURRING_ACTIONS}
               executeGrowthAction={executeGrowthAction}
               toggleRecurringAction={toggleRecurringAction}
-              calculateBurnRate={() => calculateBurnRate(gameState)}
+              calculateBurnRate={() => calculateBurnRate(gameState, TEAM_MEMBER_MONTHLY_COSTS)}
             />
-
-            {/* Game Over Screen - receives updated gameState */}
-            {gameState.gameOver && (
-              <GameOverScreen gameState={gameState} resetGame={resetGame} />
-            )}
 
             {/* Event Dialog - receives updated gameState, eventImpact etc */}
             <EventDialog
@@ -560,6 +716,7 @@ export default function StartupWars() {
               gameStateValuation={gameState.valuation}
               onClose={handleDialogClose}
               onAcquisitionDecision={handleAcquisitionOffer}
+              isAdvancingMonth={gameState.isAdvancingMonth}
             />
 
           </div>

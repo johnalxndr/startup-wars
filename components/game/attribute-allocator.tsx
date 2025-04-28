@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/8bit/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/8bit/card";
+import { Label } from "@/components/ui/8bit/label";
 import { Slider } from "@/components/ui/slider";
 import { TeamMemberAttributes } from '@/app/types';
 
@@ -89,9 +89,9 @@ export const AttributeAllocator: React.FC<AttributeAllocatorProps> = ({ onSubmit
             </div>
           ))}
         </CardContent>
-        <CardFooter className="flex justify-end">
+        <CardFooter className="justify-end">
           <Button onClick={handleSubmit} disabled={pointsRemaining !== 0}>
-            Finalize Attributes & Start Game
+            Start Game
           </Button>
         </CardFooter>
       </Card>

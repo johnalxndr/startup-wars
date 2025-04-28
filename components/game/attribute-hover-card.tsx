@@ -1,5 +1,5 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Progress } from "@/components/ui/progress"
+import { Progress } from "@/components/ui/8bit/progress"
 import { TeamMemberAttributes } from "@/app/types"
 
 interface AttributeHoverCardProps {
@@ -29,6 +29,7 @@ export function AttributeHoverCard({ attributes, children }: AttributeHoverCardP
               {attributeLabels[key as keyof TeamMemberAttributes]}
             </span>
             <Progress
+              variant="retro"
               value={(value / MAX_ATTRIBUTE_VALUE) * 100}
               className="w-full col-span-2 h-2"
               aria-label={`${attributeLabels[key as keyof TeamMemberAttributes]} level ${value}`}
