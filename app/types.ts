@@ -149,6 +149,7 @@ export interface GameActionsCardProps {
 // Removed locations, currentLocation
 export interface GameStatsProps {
   gameState: GameState;
+  prevGameState?: GameState | null;
   calculateBurnRate: () => number;
 }
 

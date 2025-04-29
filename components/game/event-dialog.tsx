@@ -89,7 +89,7 @@ export function EventDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent onInteractOutside={handleInteractOutside} className="max-w-md md:max-w-lg">
+      <DialogContent className="max-w-md md:max-w-lg">
         {isAdvancingMonth && !currentEvent ? (
           <>
             <DialogHeader>

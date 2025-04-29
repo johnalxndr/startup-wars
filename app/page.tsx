@@ -26,7 +26,7 @@ import {
 import { GameHeader } from "@/components/game/game-header";
 import { GameStats } from "@/components/game/game-stats"; // Will receive updated GameState
 import { MainTabs } from "@/components/game/main-tabs"; // Will receive updated GameState and RecurringAction
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/8bit/button";
 import { EventDialog } from '@/components/game/event-dialog'; // Will receive updated GameState
 import { RANDOM_EVENTS } from "@/data/game/random-events"; // Uses updated GameState/GameEvent
 import { INITIAL_STATE } from "@/data/game/initial-state"; // Uses updated GameState
@@ -62,6 +62,7 @@ import { calculateValuation, calculateBurnRate } from "@/lib/gameCalculations";
 
 export default function StartupWars() {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE)
+  const [prevGameState, setPrevGameState] = useState<GameState | null>(null)
   const [currentEvent, setCurrentEvent] = useState<RandomEvent | null>(null)
   const [currentEventImpact, setCurrentEventImpact] = useState<EventImpact | null>(null); // Uses updated EventImpact
   const [acquisitionOfferAmount, setAcquisitionOfferAmount] = useState<number | null>(null);
@@ -111,6 +112,7 @@ export default function StartupWars() {
       ...prevState,
       isAdvancingMonth: true
     }));
+    setPrevGameState(gameState); // Store current state as previous before advancing
 
     try {
       // Create a delay promise for minimum loading time (2 seconds)
@@ -661,7 +663,13 @@ export default function StartupWars() {
         // Render the main game UI only when setup is complete
         <>
           <div className="flex flex-col space-y-6">
-            <GameHeader title={`🚀 ${gameState.playerName}'s Startup`} />
+            <GameHeader 
+              title={`🚀 ${gameState.playerName}'s Startup`} 
+              month={gameState.month}
+              onNextMonth={nextMonth}
+              isAdvancingMonth={gameState.isAdvancingMonth}
+              gameOver={gameState.gameOver}
+            />
 
             <div className="absolute top-6 right-6">
               <ModeToggle />
@@ -670,28 +678,9 @@ export default function StartupWars() {
             {/* GameStats component now receives state with month, mrrPerUser etc. */}
             <GameStats
               gameState={gameState}
+              prevGameState={prevGameState}
               calculateBurnRate={() => calculateBurnRate(gameState, TEAM_MEMBER_MONTHLY_COSTS)}
             />
-
-            {/* Next Month Button */}
-            {!gameState.gameOver && (
-              <div className="flex justify-end mt-4">
-                <Button 
-                  onClick={nextMonth} 
-                  size="lg"
-                  disabled={gameState.isAdvancingMonth}
-                >
-                  {gameState.isAdvancingMonth ? (
-                    <>
-                      <span className="animate-spin mr-2">⏳</span>
-                      Advancing...
-                    </>
-                  ) : (
-                    `Next Month (${gameState.month})`
-                  )}
-                </Button>
-              </div>
-            )}
 
             {/* Main Game Interface - Components receive updated gameState and recurringActions */}
             <MainTabs

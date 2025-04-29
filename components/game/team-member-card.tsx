@@ -57,9 +57,9 @@ export function TeamMemberCard({ member, isCandidate = false, onHire, monthlyCos
                 )}
                 <Button
                     onClick={() => onHire(member)}
-                    size="sm"
                     disabled={disabled}
                     variant="outline"
+                    className="mt-2"
                 >
                     Hire
                 </Button>

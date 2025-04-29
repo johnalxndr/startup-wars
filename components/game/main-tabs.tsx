@@ -29,7 +29,7 @@ export function MainTabs({
 }: MainTabsProps) {
   return (
     <Tabs defaultValue="financials" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-4 mb-4">
         <TabsTrigger value="financials">Financials</TabsTrigger>
         <TabsTrigger value="team">Team</TabsTrigger>
         <TabsTrigger value="product">Product</TabsTrigger>
