@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   Card, CardContent, CardFooter, CardHeader, CardTitle
-} from "@/components/ui/8bit/card";
-import { Button } from "@/components/ui/8bit/button";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { GameState } from "@/app/types"; // Moved types to a separate file
 
 interface GameOverScreenProps {

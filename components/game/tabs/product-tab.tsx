@@ -2,11 +2,11 @@
 import React from 'react';
 import {
   Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from "@/components/ui/8bit/card";
-import { Button } from "@/components/ui/8bit/button";
-import { Badge } from "@/components/ui/8bit/badge";
-import { Switch } from "@/components/ui/8bit/switch";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/8bit/tooltip";
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { GameState, AssetType, AssetPrices, GrowthAction, RecurringAction } from "@/app/types";
 // import { ProductTabProps } from "@/app/types"; // Remove if defined below
 import { Users, Server, Globe, Zap, Repeat, Rss, HardDrive } from 'lucide-react'; // Use HardDrive for Infra

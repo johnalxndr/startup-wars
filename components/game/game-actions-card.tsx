@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/8bit/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/8bit/tabs";
-import { Button } from "@/components/ui/8bit/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { GameState, GameEvent } from "@/app/types";
 import { GameActionsCardProps } from "@/app/types";

@@ -1,8 +1,8 @@
 // Placeholder for TeamTab component
 import React, { useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid for generating unique IDs
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/8bit/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/8bit/tabs" // Import Tabs components
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs" // Import Tabs components
 import { GameState, TeamMemberType, TeamMemberMonthlyCosts, TeamMember, TeamMemberAttributes } from "@/app/types"; // Updated type name
 import { Users, UserPlus, Wrench, Palette, Megaphone } from 'lucide-react'; // Added specific icons
 import { TeamMemberCard } from "../team-member-card"; // Import the new card

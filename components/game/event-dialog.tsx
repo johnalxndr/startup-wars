@@ -6,9 +6,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/8bit/dialog"
-import { Button } from "@/components/ui/8bit/button"
-import { Badge } from "@/components/ui/8bit/badge"
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { RandomEvent, EventImpact } from "@/app/types"
 import { Loader2 } from "lucide-react"
 

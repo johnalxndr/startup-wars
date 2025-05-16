@@ -1,6 +1,6 @@
 // Placeholder for FinancialsTab component
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/8bit/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GameState } from "@/app/types";
 import { DollarSign, TrendingUp, TrendingDown} from 'lucide-react';
 

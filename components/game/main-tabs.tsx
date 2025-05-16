@@ -1,6 +1,6 @@
 // Placeholder for MainTabs component
 import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/8bit/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GameState, AssetType, GrowthAction, RecurringAction, GameEvent, TeamMember, TeamMemberMonthlyCosts, AssetPrices } from "@/app/types"; // Renamed HiringCosts
 
 // Import Tab Content Placeholders (we'll implement these later)

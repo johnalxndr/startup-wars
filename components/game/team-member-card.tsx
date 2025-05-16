@@ -1,8 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/8bit/card"
-import { Button } from "@/components/ui/8bit/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { TeamMember, TeamMemberType } from "@/app/types"
 import { AttributeHoverCard } from "./attribute-hover-card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/8bit/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface TeamMemberCardProps {
   member: TeamMember // Represents either a current member or a candidate
